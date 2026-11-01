@@ -70,7 +70,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=8" defer></script>
+<script src="/static/app.js?v=9" defer></script>
 </body></html>`;
 }
 
@@ -89,10 +89,11 @@ function card(p) {
 
 // dugmad za kontakt uz dio: Pozovi, Viber, WhatsApp
 function contactBtns(p, cls = 'sm') {
-  const title = partTitle(p) + (p.internal ? ` (šifra ${p.internal})` : '');
-  const wa = `https://wa.me/${cfg.waNumber}?text=${encodeURIComponent('Zdravo, zanima me: ' + title + ' ' + cfg.siteUrl + partUrl(p))}`;
+  const code = p.internal ? `, šifra ${p.internal}` : '';
+  const msg = `Zdravo, vidio sam ovaj dio na vašem sajtu: ${partTitle(p)}${code}. Interesuje me cijena.\n${cfg.siteUrl}${partUrl(p)}`;
+  const wa = `https://wa.me/${cfg.waNumber}?text=${encodeURIComponent(msg)}`;
   return `<span class="cbtns"><a class="btn ${cls} call" href="tel:${esc(cfg.phoneTel)}">Pozovi</a>`
-    + `<a class="btn ${cls} vb" href="viber://chat?number=${esc(encodeURIComponent(cfg.viber))}" rel="nofollow">Viber</a>`
+    + `<a class="btn ${cls} vb" href="viber://chat?number=${esc(encodeURIComponent(cfg.viber))}" data-copy="${esc(msg)}" rel="nofollow">Viber</a>`
     + `<a class="btn ${cls} wa" href="${esc(wa)}" target="_blank" rel="noopener nofollow">WhatsApp</a></span>`;
 }
 
@@ -156,12 +157,11 @@ function partRow(p, i, start = 0) {
   <td data-l="ccm" class="r mono${p.displacement ? '' : ' e'}">${num(p.displacement)}</td>
   <td data-l="kW" class="r mono${p.power ? '' : ' e'}">${num(p.power)}</td>
   <td data-l="Cijena" class="r c-price">${p.price ? `<b>${esc(money(p.price))}</b>` : '<span class="ask">Na upit</span>'}</td>
-  <td class="c-act">${contactBtns(p)}</td>
 </tr>`;
 }
 function partsTable(rows, start = 0) {
   return `<div class="tbl-wrap"><table class="parts"><thead><tr>
-  <th class="c-no">Br.</th><th class="c-img"></th><th>Šifra</th><th>Dio</th><th>Vozilo</th><th>Kat. broj</th><th>Strana</th><th class="r">ccm</th><th class="r">kW</th><th class="r">Cijena</th><th></th>
+  <th class="c-no">Br.</th><th class="c-img"></th><th>Šifra</th><th>Dio</th><th>Vozilo</th><th>Kat. broj</th><th>Strana</th><th class="r">ccm</th><th class="r">kW</th><th class="r">Cijena</th>
 </tr></thead><tbody>${rows.map((p, i) => partRow(p, i, start)).join('')}</tbody></table></div>`;
 }
 

@@ -16,6 +16,19 @@
   }
   badge();
 
+  // Viber ne podržava gotov tekst u linku: poruka se kopira, pa je samo zalijepiš u razgovor
+  function copyText(t) {
+    try { if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(t); return true; } } catch (e) { /* dalje */ }
+    try {
+      var ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); var ok = document.execCommand('copy'); ta.remove(); return ok;
+    } catch (e) { return false; }
+  }
+  document.addEventListener('click', function (e) {
+    var v = e.target.closest('[data-copy]');
+    if (v && copyText(v.getAttribute('data-copy'))) toast('Poruka kopirana — zalijepi je u Viber');
+  });
+
   // dodaj u korpu
   document.addEventListener('click', function (e) {
     var add = e.target.closest('[data-add]');
