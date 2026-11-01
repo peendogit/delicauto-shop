@@ -337,3 +337,8 @@ details.gdet>summary{font-weight:700;font-size:1.05rem;padding:10px 0;cursor:poi
 .ac{right:auto;width:max(100%,250px);max-width:calc(100vw - 40px)}
 .ac li{text-transform:none;letter-spacing:0;font-weight:500;color:var(--ink,#0f2a47);font-size:.95rem;line-height:1.25;display:block}
 .sf-grid .ac-wrap:nth-child(2n) .ac{left:auto;right:0}
+
+.stcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.stcards div{background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px}.stcards b{display:block;font-size:1.6rem;color:#0f2a47}.stcards span{font-size:.8rem;color:#667}
+.bar{display:block;background:#e8edf3;border-radius:3px;height:10px;min-width:80px}.bar i{display:block;height:10px;background:#f5a300;border-radius:3px}
+.hours{margin:.4rem 0}

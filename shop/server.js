@@ -10,6 +10,7 @@ const { makeSync } = require('./lib/sync');
 const { notify, notifyPhotos } = require('./lib/notify');
 const { sendMail } = require('./lib/mail');
 const V = require('./lib/views');
+const { makeStats } = require('./lib/stats');
 
 let sharp = null;
 try { sharp = require('sharp'); } catch { /* slike se serviraju originalne */ }
@@ -17,6 +18,8 @@ try { sharp = require('sharp'); } catch { /* slike se serviraju originalne */ }
 const db = dbm.open(cfg.dataDir);
 const sync = makeSync({ db, app: appApi, pollSeconds: cfg.pollSeconds, onChange: () => facetCache.clear() });
 const app = createApp();
+const stats = makeStats(db);
+app.use((req, res) => { stats.middleware(req, res); });
 const now = () => Date.now();
 
 // ---------- pomoćne ----------
@@ -238,6 +241,11 @@ app.get('/dijelovi', (req, res) => {
     for (const [k, v] of Object.entries({ ...f, ...extra })) if (v && !(k === 'page' && v === 1) && !(k === 'prikaz' && v === 'lista')) p.set(k, v);
     return p.toString();
   };
+  if (!(parseInt(req.query.page, 10) > 1)) {
+    const term = f.q || f.katbr || f.sifra || f.tip || f.kodmot || '';
+    const veh = [f.marka, f.model].filter(Boolean).join(' ');
+    stats.search(req, { kind: 'dio', term, vehicle: veh, results: total });
+  }
   if (req.query.frag) { res.setHeader('Cache-Control', 'no-store'); return res.html(V.listFrag({ rows, total, page, pages, f, baseQuery, yard: yardFor(f.marka, f.model) })); }
   res.html(V.list({ rows, total, page, pages, f, facets: facets(f.marka, f.model), tree: groupTree(f), baseQuery, yard: yardFor(f.marka, f.model) }));
 });
@@ -255,6 +263,7 @@ app.get('/dio/:slug', async (req, res) => {
   if (!p) return res.html(V.unavailable(id), 410);
   const canonical = V.partUrl(p);
   if (decodeURIComponent(req.path) !== canonical) return res.redirect(canonical, 301);
+  stats.partView(req, id, `${p.catalog ? p.catalog + ' · ' : ''}${V.partTitle(p)}`);
   res.html(V.detail(p));
 });
 
@@ -468,6 +477,8 @@ app.get('/felne', (req, res) => {
   if (f.marka) { where.push('make = ?'); args.push(f.marka); }
   if (f.centar) { where.push("center LIKE ? ESCAPE '\\'"); args.push(f.centar.replace(/[\\%_]/g, '\\$&') + '%'); }
   const rows = db.prepare(`SELECT * FROM rims ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY CAST(diameter AS REAL), id LIMIT 300`).all(...args).map(rimRow);
+  const rt = [f.tip, f.promjer && f.promjer + '"', f.sirina && f.sirina + 'J', f.raspored, f.centar && 'cb ' + f.centar].filter(Boolean).join(' ');
+  if (rt || f.marka) stats.search(req, { kind: 'felne', term: rt ? 'felne ' + rt : '', vehicle: f.marka || '', results: rows.length });
   res.html(V.rimsList({ rows, f, fx: rimFacets() }));
 });
 app.get('/felna/:slug', (req, res) => {
@@ -476,6 +487,7 @@ app.get('/felna/:slug', (req, res) => {
   if (!r) return res.html(V.unavailable(0), 410);
   const rr = rimRow(r), canonical = V.rimUrl(rr);
   if (decodeURIComponent(req.path) !== canonical) return res.redirect(canonical, 301);
+  stats.partView(req, -rr.id, 'Felne: ' + V.rimTitle(rr));
   res.html(V.rimDetail(rr));
 });
 
@@ -532,6 +544,41 @@ app.post('/admin/otkup/:id', (req, res) => {
   res.redirect('/admin', 303);
 });
 
+app.post('/api/klik', (req, res) => {
+  const b = req.body || {};
+  if (limited(req, res, 60)) return;
+  stats.click(req, String(b.k || ''), String(b.p || ''), String(b.t || ''));
+  res.json({ ok: true });
+});
+
+const bar = (n, max) => `<span class="bar"><i style="width:${max ? Math.max(2, Math.round(n / max * 100)) : 0}%"></i></span>`;
+app.get('/admin/statistika', (req, res) => {
+  if (!adminAuth(req, res)) return;
+  const d = [7, 30, 90].includes(Number(req.query.d)) ? Number(req.query.d) : 30;
+  const r = stats.report(d);
+  const E = V.esc, maxV = Math.max(1, ...r.daily.map(x => x.visitors));
+  const tbl = (head, rows, empty) => `<table><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr>${rows.join('') || `<tr><td colspan="${head.length}">${empty}</td></tr>`}</table>`;
+  const body = `<div class="admin"><h1>Statistika</h1>
+<p><a href="/admin">← Admin</a> · Period: ${[7, 30, 90].map(x => x === d ? `<b>${x} dana</b>` : `<a href="/admin/statistika?d=${x}">${x} dana</a>`).join(' · ')}</p>
+<div class="stcards"><div><b>${r.today.visitors}</b><span>posjetilaca danas</span></div><div><b>${r.tot.visitors}</b><span>posjetilaca (${d} dana)</span></div><div><b>${r.tot.views}</b><span>pregleda stranica</span></div><div><b>${r.searches}</b><span>pretraga</span></div></div>
+<p class="muted small">Posjetilac se broji jednom dnevno (anonimni otisak, bez kolačića i bez čuvanja IP adrese). Botovi i admin se ne broje.</p>
+<h2>Posjete po danima</h2>
+${tbl(['Dan', 'Posjetilaca', 'Pregleda', ''], r.daily.slice().reverse().map(x => `<tr><td>${E(x.day)}</td><td>${x.visitors}</td><td>${x.views}</td><td>${bar(x.visitors, maxV)}</td></tr>`), 'Još nema posjeta.')}
+<h2>Šta tražimo a nemamo (nula rezultata)</h2>
+<p class="muted small">Ovo je lista za nabavku: pretrage koje nisu našle ništa, poredane po broju traženja.</p>
+${tbl(['Traženo', 'Vozilo', 'Puta', 'Zadnji put'], r.missing.map(x => `<tr><td><b>${E(x.term || '—')}</b></td><td>${E(x.vehicle)}</td><td>${x.n}</td><td>${E(x.last)}</td></tr>`), 'Nema pretraga bez rezultata.')}
+<h2>Najčešće pretrage</h2>
+${tbl(['Pojam', 'Puta', 'Rezultata'], r.top.map(x => `<tr><td>${E(x.term)}</td><td>${x.n}</td><td>${x.maxres === 0 ? '<b style="color:var(--err)">0</b>' : x.maxres}</td></tr>`), 'Još nema pretraga.')}
+<h2>Najtraženija vozila</h2>
+${tbl(['Vozilo', 'Puta'], r.vehicles.map(x => `<tr><td>${E(x.vehicle)}</td><td>${x.n}</td></tr>`), 'Još nema podataka.')}
+<h2>Najgledaniji artikli</h2>
+${tbl(['Artikal', 'Pregleda'], r.parts.map(x => `<tr><td>${E(x.title)}</td><td>${x.n}</td></tr>`), 'Još nema podataka.')}
+<h2>Klikovi na Viber / WhatsApp</h2>
+${tbl(['Artikal', 'Viber', 'WhatsApp'], r.clicks.map(x => `<tr><td><a href="${E(x.path)}">${E(x.title || x.path)}</a></td><td>${x.vb}</td><td>${x.wa}</td></tr>`), 'Još nema klikova.')}
+</div>`;
+  res.html(V.layout({ title: 'Statistika', path: '/admin/statistika', noindex: true, body }));
+});
+
 app.get('/admin', (req, res) => {
   if (!adminAuth(req, res)) return;
   const orders = db.prepare('SELECT * FROM orders ORDER BY id DESC LIMIT 100').all();
@@ -542,6 +589,7 @@ app.get('/admin', (req, res) => {
     `<button name="status" value="${v}">${t}</button>`).join(' ')}</form>`;
   const s = sync.status;
   const body = `<div class="admin"><h1>Admin</h1>
+<p><a class="btn" href="/admin/statistika">📊 Statistika posjeta i pretraga</a></p>
 <p class="muted">Dijelova u shopu: <b>${db.prepare('SELECT COUNT(*) AS n FROM parts').get().n}</b> · zadnja provjera promjena: ${s.lastPoll ? fmtTs(s.lastPoll) : '—'} ·
  zadnje potpuno poravnanje: ${s.lastFull ? fmtTs(s.lastFull) : '—'}${s.lastError ? ` · <b style="color:var(--err)">greška: ${V.esc(s.lastError)}</b>` : ''}
  <form class="inline" method="post" action="/admin/sync"><button>Sinhroniziraj odmah</button></form></p>

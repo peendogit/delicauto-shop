@@ -323,3 +323,16 @@
     inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') ul.hidden = true; });
   });
 })();
+
+// statistika: klik na Viber/WhatsApp na stranici artikla (anonimno)
+(function () {
+  if (!/^\/(dio|felna)\//.test(location.pathname)) return;
+  document.querySelectorAll('.cbtns a.vb, .cbtns a.wa').forEach(function (a) {
+    a.addEventListener('click', function () {
+      try {
+        var h1 = document.querySelector('h1');
+        navigator.sendBeacon('/api/klik', new Blob([JSON.stringify({ k: a.classList.contains('vb') ? 'viber' : 'whatsapp', p: location.pathname, t: h1 ? h1.textContent.trim() : '' })], { type: 'application/json' }));
+      } catch (e) {}
+    });
+  });
+})();
