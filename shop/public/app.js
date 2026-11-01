@@ -288,3 +288,38 @@
   });
   if (/iphone|ipad/i.test(navigator.userAgent)) show('📲 Instaliraj aplikaciju', function () { alert('Pritisnite dugme Podijeli, zatim "Dodaj na početni ekran".'); });
 })();
+
+// Padajuća lista prijedloga koja se sužava dok kucaš (umjesto sistemske datalist trake)
+(function () {
+  var fold = function (s) { return String(s).toLowerCase().replace(/đ/g, 'dj').normalize('NFD').replace(/[̀-ͯ]/g, ''); };
+  document.querySelectorAll('input[list]').forEach(function (inp) {
+    var dl = document.getElementById(inp.getAttribute('list'));
+    if (!dl) return;
+    var opts = Array.prototype.map.call(dl.options, function (o) { return o.value; });
+    inp.removeAttribute('list'); dl.remove();
+    var wrap = inp.closest('label') || inp.parentNode; wrap.classList.add('ac-wrap');
+    var ul = document.createElement('ul'); ul.className = 'ac'; ul.hidden = true; wrap.appendChild(ul);
+    var skip = false;
+    function render() {
+      var q = fold(inp.value.trim());
+      var hit = opts.filter(function (o) { return !q || fold(o).indexOf(q) !== -1; });
+      hit.sort(function (a, b) { return (fold(a).indexOf(q) === 0 ? 0 : 1) - (fold(b).indexOf(q) === 0 ? 0 : 1); });
+      if (!hit.length || (hit.length === 1 && hit[0] === inp.value)) { ul.hidden = true; return; }
+      ul.innerHTML = '';
+      hit.slice(0, 60).forEach(function (o) {
+        var li = document.createElement('li'); li.textContent = o;
+        li.addEventListener('mousedown', function (e) { e.preventDefault(); });
+        li.addEventListener('click', function () {
+          inp.value = o; ul.hidden = true;
+          inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        ul.appendChild(li);
+      });
+      ul.hidden = false;
+    }
+    inp.addEventListener('input', render);
+    inp.addEventListener('focus', render);
+    inp.addEventListener('blur', function () { setTimeout(function () { ul.hidden = true; }, 150); });
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') ul.hidden = true; });
+  });
+})();
