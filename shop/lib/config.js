@@ -40,7 +40,7 @@ module.exports = {
   waNumber: (e.SHOP_WHATSAPP || e.SHOP_VIBER || '+38766027888').replace(/\D/g, ''),
   email: (e.SHOP_EMAIL || '').trim(),
   address: (e.SHOP_ADDRESS || '').trim(),
-  mapQuery: (e.SHOP_MAP_QUERY || '').trim(),
+  mapQuery: (e.SHOP_MAP_QUERY || '44.7860809,19.2464').trim(),
   mapLink: (e.SHOP_MAP_LINK || 'https://maps.app.goo.gl/YxhohNsrNt7pEarG6').trim(),
   adminUser: e.ADMIN_USER || 'admin',
   adminPass: e.ADMIN_PASS || '',
