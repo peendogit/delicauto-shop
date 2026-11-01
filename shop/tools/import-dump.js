@@ -107,7 +107,7 @@ const yy = d => (d ? String(d).slice(2, 4) : '');
       sync.applyItem({
         id, available: true, qty: 1,
         internal: p.internal_code, type: String(t.title).trim(), group: g ? g.title : null,
-        make: mk ? mk.name : null, model, vehicle: model ? `${model}${years}${eng ? ' · ' + eng : ''}` : null,
+        make: mk ? mk.name : null, model, vehicle: model ? `${model}${years}` : null,
         catalog: p.catalog_number || p.catalog_number_manufacturer || null,
         side: MAP.side[p.side] || null, fuel: MAP.fuel[p.fuel_type] || null,
         displacement: p.cylinder_capacity ? String(Math.round(p.cylinder_capacity)) : null, power: p.power ? String(p.power) : null,

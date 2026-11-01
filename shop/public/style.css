@@ -281,3 +281,22 @@ details.gdet>summary{font-weight:700;font-size:1.05rem;padding:10px 0;cursor:poi
 .pv{position:relative;width:84px;height:64px}.pv img{width:100%;height:100%;object-fit:cover;border:1px solid var(--line);border-radius:4px}
 .pv button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:#c0392b;color:#fff;line-height:1;cursor:pointer}
 .buy-cta{background:linear-gradient(135deg,#0f2a47,#1b4fd8);color:#fff}.buy-cta h2,.buy-cta p{color:#fff}
+
+/* kontakt dugmad uz dio, admin dugme */
+.cbtns{display:inline-flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+.btn.call{background:#1b7f3a;color:#fff;border-color:#1b7f3a}
+.btn.vb{background:#7360f2;color:#fff;border-color:#7360f2}
+.btn.wa{background:#25d366;color:#083d1d;border-color:#25d366}
+.btn.call:hover,.btn.vb:hover,.btn.wa:hover{filter:brightness(1.08)}
+.buy .cbtns{justify-content:flex-start;gap:8px;margin-top:6px}
+.buy .cbtns .btn{min-width:104px;text-align:center}
+.parts .c-act{width:auto}
+.admin-btn{margin-left:12px;padding:2px 10px;border:1px solid rgba(255,255,255,.35);border-radius:3px;font-size:.78rem;color:#fff!important;text-decoration:none!important}
+.admin-btn:hover{background:rgba(255,255,255,.12)}
+@media(max-width:899px){.parts td.c-act{margin-top:8px}.cbtns{justify-content:flex-start}}
+.cbtns{display:flex;flex-wrap:wrap;gap:5px;max-width:176px;margin-left:auto}
+.cbtns .btn{display:inline-flex;align-items:center;justify-content:center;width:auto;flex:1 1 auto;padding:6px 9px;font-size:.78rem;line-height:1.1;min-height:34px}
+.buy .cbtns{max-width:none;margin-left:0}
+.buy .cbtns .btn{flex:0 0 auto;padding:10px 16px;font-size:.9rem}
+@media(max-width:899px){.cbtns{max-width:none;margin-left:0;flex-wrap:nowrap}.cbtns .btn{flex:1 1 0;min-height:44px}}
+@media(min-width:900px){.parts td.c-act{min-width:180px}.parts td.c-price{min-width:64px}}

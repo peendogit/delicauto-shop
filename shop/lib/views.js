@@ -51,19 +51,18 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=7">
+<link rel="stylesheet" href="/static/style.css?v=10">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
-<div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''}</span></div></div>
+<div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
 <header class="top"><div class="wrap top-in">
   <a class="brand" href="/"><svg class="logo" viewBox="0 0 48 48" width="46" height="46" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f7bff"/><stop offset="1" stop-color="#0b3fa8"/></linearGradient></defs><path d="M24 2.5l18 10.2v22.6L24 45.5 6 35.3V12.7z" fill="url(#lg)" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><circle cx="24" cy="24" r="14" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.5"/><path d="M17.5 14.5h7.2c6.1 0 9.8 3.8 9.8 9.5s-3.700 9.500-9.800 9.500h-7.200z M22.200 19v10h2.400c3.100 0 5-2 5-5s-1.900-5-5-5z" fill="#fff" fill-rule="evenodd"/><circle cx="38" cy="10" r="3" fill="#ff8a1f" stroke="#fff" stroke-width="1.2"/></svg><span class="brand-name">Auto Otpad <b>Delić</b><small>Katalog polovnih dijelova</small></span></a>
   <form class="top-search" action="/dijelovi" method="get" role="search">
     <input type="search" name="q" placeholder="Brza pretraga: dio, marka, model, kataloški broj…" aria-label="Pretraga" autocomplete="off">
     <button type="submit" aria-label="Traži">Traži</button>
   </form>
-  <a class="cart-link" href="/korpa">Korpa <span id="cartN" class="badge" hidden>0</span></a>
 </div>
-<nav class="mainnav" aria-label="Glavni meni"><div class="wrap"><a href="/katalog">Katalog po vozilu</a><a href="/dijelovi">Pretraga dijelova</a><a href="/otkup" class="nav-hl">Otkup vozila</a><a href="/kontakt">Kontakt</a></div></nav>
+<nav class="mainnav" aria-label="Glavni meni"><div class="wrap"><a href="/katalog">Katalog po vozilu</a><a href="/otkup" class="nav-hl">Otkup vozila</a><a href="/kontakt">Kontakt</a></div></nav>
 </header>
 <main class="wrap">${body}</main>
 <footer class="foot"><div class="wrap foot-in">
@@ -71,7 +70,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=7" defer></script>
+<script src="/static/app.js?v=8" defer></script>
 </body></html>`;
 }
 
@@ -86,6 +85,15 @@ function card(p) {
   <div class="card-b"><h3>${esc(title)}</h3>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}
   <div class="card-f">${p.price ? `<span class="price">${esc(money(p.price))}</span>` : '<span class="ask">Pošalji upit</span>'}
   ${p.internal ? `<span class="code">${esc(p.internal)}</span>` : ''}</div></div></a></article>`;
+}
+
+// dugmad za kontakt uz dio: Pozovi, Viber, WhatsApp
+function contactBtns(p, cls = 'sm') {
+  const title = partTitle(p) + (p.internal ? ` (šifra ${p.internal})` : '');
+  const wa = `https://wa.me/${cfg.waNumber}?text=${encodeURIComponent('Zdravo, zanima me: ' + title + ' ' + cfg.siteUrl + partUrl(p))}`;
+  return `<span class="cbtns"><a class="btn ${cls} call" href="tel:${esc(cfg.phoneTel)}">Pozovi</a>`
+    + `<a class="btn ${cls} vb" href="viber://chat?number=${esc(encodeURIComponent(cfg.viber))}" rel="nofollow">Viber</a>`
+    + `<a class="btn ${cls} wa" href="${esc(wa)}" target="_blank" rel="noopener nofollow">WhatsApp</a></span>`;
 }
 
 // ---- polja za pretragu (ista kao u aplikaciji za otpad) ----
@@ -148,9 +156,7 @@ function partRow(p, i, start = 0) {
   <td data-l="ccm" class="r mono${p.displacement ? '' : ' e'}">${num(p.displacement)}</td>
   <td data-l="kW" class="r mono${p.power ? '' : ' e'}">${num(p.power)}</td>
   <td data-l="Cijena" class="r c-price">${p.price ? `<b>${esc(money(p.price))}</b>` : '<span class="ask">Na upit</span>'}</td>
-  <td class="c-act">${p.price
-    ? `<button type="button" class="btn sm buy" data-add="${p.id}" data-max="${p.qty || 1}">U korpu</button>`
-    : `<a class="btn sm ghost" href="${url}#upit">Upit</a>`}</td>
+  <td class="c-act">${contactBtns(p)}</td>
 </tr>`;
 }
 function partsTable(rows, start = 0) {
@@ -289,9 +295,9 @@ function catalog({ marka, model, makes, models, variants, tree, total }) {
     inner = `<h1 class="pg-h">${esc(marka)} ${esc(model)}</h1>
       <p class="muted">${total.toLocaleString('de-DE')} dijelova na stanju · <a href="/dijelovi?${mk({})}">Prikaži sve</a></p>
       <div class="two cat2">
-        <div><h2>Vozilo / motor</h2>
-          <table class="vt-table"><thead><tr><th>Vozilo</th><th>Gorivo</th><th>ccm</th><th>kW</th><th>Motor</th><th></th></tr></thead><tbody>
-          ${variants.map(v => `<tr><td><a href="/dijelovi?${mk({ vozilo: v.vehicle })}">${esc(v.vehicle || '(bez oznake)')}</a></td><td>${spec(v.fuel)}</td><td>${spec(v.displacement)}</td><td>${spec(v.power)}</td><td class="mono">${spec(v.engineCode)}</td><td class="num">${v.n}</td></tr>`).join('')}
+        <div><h2>Godišta</h2>
+          <table class="vt-table"><thead><tr><th>Vozilo (godišta)</th><th></th></tr></thead><tbody>
+          ${variants.map(v => `<tr><td><a href="/dijelovi?${mk({ vozilo: v.vehicle })}">${esc(v.vehicle || '(bez oznake)')}</a></td><td class="num">${v.n}</td></tr>`).join('')}
           </tbody></table></div>
         <div><h2>Grupe dijelova</h2>${treeHtml(tree, {}, mk)}</div>
       </div>`;
@@ -341,12 +347,9 @@ function detail(p) {
     <h1>${esc(title)}</h1>
     ${p.vehicle ? `<p class="sub">${esc(p.vehicle)}</p>` : ''}
     <div class="box buy">
-      ${p.price ? `<div class="price big">${esc(money(p.price))}</div>
-        ${p.qty > 1 ? `<label class="f qty"><span>Količina (na stanju: ${p.qty})</span><input id="qty" type="number" min="1" max="${p.qty}" value="1"></label>` : ''}
-        <button class="btn" type="button" data-add="${p.id}" data-max="${p.qty}">Dodaj u korpu</button>`
-        : `<div class="ask big">Cijena na upit</div><p class="muted">Pošalji upit ispod ili nas kontaktiraj direktno.</p>`}
-      ${phone ? `<a class="btn ghost" href="tel:${esc(phone)}">Pozovi ${esc(cfg.phone)}</a>` : ''}
-      ${cfg.viber ? `<a class="btn ghost" href="viber://chat?number=${esc(encodeURIComponent(cfg.viber))}">Viber</a>` : ''}
+      ${p.price ? `<div class="price big">${esc(money(p.price))}</div>` : `<div class="ask big">Cijena na upit</div>`}
+      <p class="muted">Pozovi ili nam piši — rado ćemo ti odgovoriti.</p>
+      ${contactBtns(p, '')}
     </div>
     ${p.note ? `<p class="note">${esc(p.note)}</p>` : ''}
     ${inquiry}
@@ -404,12 +407,6 @@ function unavailable(id) {
   });
 }
 
-function cart() {
-  return layout({
-    title: 'Korpa', path: '/korpa', noindex: true,
-    body: `<h1 class="pg-h">Korpa</h1><div id="cart-root"><p class="muted">Učitavanje…</p></div>`,
-  });
-}
 
 function contact() {
   const phone = cfg.phoneTel;
@@ -441,4 +438,4 @@ function notFound() {
   return layout({ title: 'Stranica nije pronađena', noindex: true, body: `<div class="empty"><h1>Stranica nije pronađena</h1><p><a class="btn" href="/">Na početnu</a></p></div>` });
 }
 
-module.exports = { buyout, listFrag, esc, slugify, nice, partTitle, partUrl, imgUrl, money, rowToPart, parseImgs, layout, home, list, catalog, detail, unavailable, cart, contact, notFound };
+module.exports = { buyout, listFrag, esc, slugify, nice, partTitle, partUrl, imgUrl, money, rowToPart, parseImgs, layout, home, list, catalog, detail, unavailable, contact, notFound };

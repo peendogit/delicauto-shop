@@ -62,7 +62,7 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
   const shop = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
     env: { ...process.env, PORT: SHOP_PORT, APP_URL: `http://127.0.0.1:${APP_PORT}`, APP_API_KEY: KEY, UPLOADS_DIR: uploads,
       DATA_DIR: path.join(tmp, 'data'), ADMIN_USER: 'nino', ADMIN_PASS: 'tajna123', POLL_SECONDS: '2', SITE_URL: 'https://delicauto.com',
-      SHOP_PHONE: '+387 55 000 000', NODE_PATH: process.env.NODE_PATH || '' },
+      SHOP_PHONE: '066 027 888', NODE_PATH: process.env.NODE_PATH || '' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let log = ''; shop.stdout.on('data', d => log += d); shop.stderr.on('data', d => log += d);
@@ -75,7 +75,7 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
     let r = await get('/dijelovi');
     ok(r.status === 200 && tb(r.text).includes('Kutija osiguraca') && tb(r.text).includes('Land Rover Range Rover Sport'), 'tabela prikazuje dio 1 (naziv normalizovan)');
     ok(tb(r.text).includes('85 KM'), 'cijena prikazana kad postoji');
-    ok(tb(r.text).includes('>Upit<') && tb(r.text).includes('Na upit'), '„Pošalji upit“ kad cijene nema');
+    ok(tb(r.text).includes('Na upit') && tb(r.text).includes('wa.me/38766027888') && tb(r.text).includes('viber://chat?number=%2B38766027888') && tb(r.text).includes('tel:+38766027888'), 'Na upit + Pozovi, Viber i WhatsApp dugmad');
     ok(!r.text.includes('Zrcalo'), 'prodani dio nije prikazan');
     ok(!r.text.includes('nabavna'), 'nabavne cijene nema u izlazu');
     r = await get('/dijelovi?q=osigura%C4%8Da'); ok(r.text.includes('Kutija osiguraca') && !r.text.includes('Golf 7'), 'pretraga s dijakritikom (osigurača)');
@@ -112,7 +112,7 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
     const id1 = JSON.parse((await get('/api/dijelovi?ids=1,2,3')).text);
     ok(id1.length === 3, 'API za korpu vraća 3 dijela');
     r = await get(id1.find(x => x.id === 1).url);
-    ok(r.status === 200 && r.text.includes('application/ld+json') && r.text.includes('"price":"85"') && r.text.includes('Dodaj u korpu'), 'detalj: Product schema, cijena, dugme korpe');
+    ok(r.status === 200 && r.text.includes('application/ld+json') && r.text.includes('"price":"85"') && !r.text.includes('Dodaj u korpu') && r.text.includes('wa.me/'), 'detalj: Product schema, cijena, kontakt dugmad bez korpe');
     r = await get(id1.find(x => x.id === 2).url);
     ok(r.text.includes('Cijena na upit') && !r.text.includes('Dodaj u korpu'), 'detalj bez cijene: upit, bez korpe');
     r = await get('/dio/1'); ok(r.status === 200 || r.status === 301, 'dio/1 preusmjeren na kanonski URL');

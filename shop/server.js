@@ -69,9 +69,11 @@ const alpha = (a, b) => String(a).localeCompare(String(b), 'bs', { numeric: true
 const modelsOf = make => cached('models:' + make, () => db.prepare(
   `SELECT model, COUNT(*) AS n FROM parts WHERE make = ? AND model IS NOT NULL AND model <> '' GROUP BY model`).all(make)
   .sort((a, b) => alpha(a.model, b.model)));
+// vozila se grupišu samo po modelu i godištima (bez motora): "Golf 6 (08-13) · 1.6" -> "Golf 6 (08-13)"
+const VEH_LABEL = "CASE WHEN instr(vehicle, ' · ') > 0 THEN substr(vehicle, 1, instr(vehicle, ' · ') - 1) ELSE vehicle END";
 const vehiclesOf = (make, model) => cached(`veh:${make}|${model}`, () => db.prepare(
-  `SELECT COALESCE(vehicle, '') AS vehicle, fuel, displacement, power, engine_code AS engineCode, COUNT(*) AS n FROM parts
-   WHERE make = ? AND model = ? GROUP BY vehicle, fuel, displacement, power, engine_code`).all(make, model)
+  `SELECT COALESCE(${VEH_LABEL}, '') AS vehicle, COUNT(*) AS n FROM parts
+   WHERE make = ? AND model = ? GROUP BY 1`).all(make, model)
   .sort((a, b) => alpha(a.vehicle, b.vehicle)));
 const distinctOf = (col, numeric) => cached('d:' + col, () => db.prepare(
   `SELECT DISTINCT ${col} AS v FROM parts WHERE ${col} IS NOT NULL AND ${col} <> ''`).all().map(r => String(r.v))
@@ -102,7 +104,7 @@ function buildList(f) {
   const where = [], args = [];
   if (f.marka) { where.push('make = ?'); args.push(f.marka); }
   if (f.model) { where.push('model = ?'); args.push(f.model); }
-  if (f.vozilo) { where.push('vehicle = ?'); args.push(f.vozilo); }
+  if (f.vozilo) { where.push("(vehicle = ? OR vehicle LIKE ? ESCAPE '\\')"); args.push(f.vozilo, f.vozilo.replace(/[\\%_]/g, '\\$&') + ' · %'); }
   if (f.grupa) { where.push(f.grupa === 'Ostalo' ? `(grp IS NULL OR grp = '' OR grp = 'Ostalo')` : 'grp = ?'); if (f.grupa !== 'Ostalo') args.push(f.grupa); }
   if (f.tip) { where.push(f.tip === 'Ostalo' ? `(type IS NULL OR type = '' OR type = 'Ostalo')` : 'type = ?'); if (f.tip !== 'Ostalo') args.push(f.tip); }
   if (f.gorivo) { where.push('fuel = ?'); args.push(f.gorivo); }
@@ -216,7 +218,7 @@ app.get('/dio/:slug', async (req, res) => {
   res.html(V.detail(p));
 });
 
-app.get('/korpa', (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.html(V.cart()); });
+app.get('/korpa', (req, res) => res.redirect('/', 301));
 app.get('/kontakt', (req, res) => res.html(V.contact()));
 
 // ---------- slike (proxy + smanjivanje, keš na disku) ----------
