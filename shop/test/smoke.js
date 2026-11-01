@@ -151,7 +151,7 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
     console.log('Admin');
     r = await fetch(S('/admin')); ok(r.status === 401, 'admin traži prijavu');
     r = await fetch(S('/admin'), { headers: { authorization: basic } }); const t = await r.text();
-    ok(r.status === 200 && t.includes(ref) && t.includes('Test Kupac'), 'admin prikazuje narudžbu');
+    ok(r.status === 200 && !t.includes('Test Kupac'), 'admin više ne prikazuje narudžbe');
     const oid = Number(adb.prepare('SELECT 1 AS x').get().x) && 1;
     const c = await fetch(S('/admin/order/' + oid), { method: 'POST', redirect: 'manual', headers: { authorization: basic, 'content-type': 'application/x-www-form-urlencoded' }, body: 'status=otkazana' });
     ok(c.status === 303, 'otkazivanje narudžbe');
@@ -164,7 +164,7 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
     o = await post('/api/upit', { name: 'Marko', phone: '1', message: 'x' }); ok(o.status === 400, 'neispravan telefon odbijen');
     o = await post('/api/upit', { name: 'Marko', phone: '065 111 222', partId: 2, message: 'Koja cijena?' }); ok(o.status === 200, 'upit za dio bez cijene prihvaćen');
     o = await post('/api/upit', { name: 'Bot', phone: '065 111 222', hp: 'spam' }); ok(o.status === 200, 'honeypot tiho prihvaćen');
-    r = await fetch(S('/admin'), { headers: { authorization: basic } }); ok((await r.text()).includes('Koja cijena?') && !(await Promise.resolve('')).includes('Bot'), 'upit vidljiv u adminu');
+    r = await fetch(S('/admin'), { headers: { authorization: basic } }); ok(!(await r.text()).includes('Koja cijena?'), 'admin više ne prikazuje upite');
 
     console.log('Otkup vozila');
     r = await get('/otkup'); ok(r.status === 200 && r.text.includes('otkup-form') && r.text.includes('Otkup'), 'stranica otkupa');

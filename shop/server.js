@@ -581,9 +581,6 @@ ${tbl(['Artikal', 'Viber', 'WhatsApp'], r.clicks.map(x => `<tr><td><a href="${E(
 
 app.get('/admin', (req, res) => {
   if (!adminAuth(req, res)) return;
-  const orders = db.prepare('SELECT * FROM orders ORDER BY id DESC LIMIT 100').all();
-  const items = db.prepare('SELECT * FROM order_items WHERE order_id IN (SELECT id FROM orders ORDER BY id DESC LIMIT 100)').all();
-  const inqs = db.prepare('SELECT * FROM inquiries ORDER BY id DESC LIMIT 100').all();
   const buys = db.prepare('SELECT * FROM buyouts ORDER BY id DESC LIMIT 100').all();
   const st = (action, id, opts) => `<form class="inline" method="post" action="/admin/${action}/${id}">${opts.map(([v, t]) =>
     `<button name="status" value="${v}">${t}</button>`).join(' ')}</form>`;
@@ -593,26 +590,13 @@ app.get('/admin', (req, res) => {
 <p class="muted">Dijelova u shopu: <b>${db.prepare('SELECT COUNT(*) AS n FROM parts').get().n}</b> · zadnja provjera promjena: ${s.lastPoll ? fmtTs(s.lastPoll) : '—'} ·
  zadnje potpuno poravnanje: ${s.lastFull ? fmtTs(s.lastFull) : '—'}${s.lastError ? ` · <b style="color:var(--err)">greška: ${V.esc(s.lastError)}</b>` : ''}
  <form class="inline" method="post" action="/admin/sync"><button>Sinhroniziraj odmah</button></form></p>
-<h2>Narudžbe</h2>
-<table><tr><th>Broj</th><th>Vrijeme</th><th>Kupac</th><th>Dijelovi</th><th>Ukupno</th><th>Status</th></tr>
-${orders.map(o => `<tr><td><b>${V.esc(o.ref)}</b></td><td>${fmtTs(o.created_at)}</td>
-<td>${V.esc(o.name)}<br><a href="tel:${V.esc(o.phone)}">${V.esc(o.phone)}</a>${o.email ? '<br>' + V.esc(o.email) : ''}<br>
-${o.delivery === 'dostava' ? V.esc(`${o.city}, ${o.address}`) : 'Preuzimanje'}${o.note ? '<br><i>' + V.esc(o.note) + '</i>' : ''}</td>
-<td>${items.filter(i => i.order_id === o.id).map(i => `${V.esc(i.title)}${i.internal ? ' <code>' + V.esc(i.internal) + '</code>' : ''} ×${i.qty}`).join('<br>')}</td>
-<td>${V.esc(V.money(o.total))}</td>
-<td><span class="st">${V.esc(o.status)}</span><br>${st('order', o.id, [['nova', 'Nova'], ['potvrdjena', 'Potvrđena'], ['zavrsena', 'Završena'], ['otkazana', 'Otkaži + oslobodi dio']])}</td></tr>`).join('') || '<tr><td colspan="6">Nema narudžbi.</td></tr>'}</table>
-<p class="muted small">Kad završiš prodaju, u aplikaciji klikni „Prodaj dio“ — dio tada nestaje iz shopa. Rezervacija se sama poništi nakon 14 dana.</p>
 <h2>Otkup vozila</h2>
 <table><tr><th>Vrijeme</th><th>Ponuda</th><th>Slike</th><th>Status</th></tr>
 ${buys.map(o => `<tr><td>${fmtTs(o.created_at)}<br>#${o.id}${o.mailed ? '<br><small>mail ✓</small>' : ''}</td>
 <td>${V.esc(o.name)}<br><a href="tel:${V.esc(o.phone)}">${V.esc(o.phone)}</a><br>${V.esc(o.location)}<br><b>${V.esc(o.vehicle || '')}</b>${o.description ? '<br><i>' + V.esc(o.description) + '</i>' : ''}</td>
 <td>${Array.from({ length: o.images }, (_, i) => `<a href="/admin/otkup/${o.id}/${i + 1}" target="_blank"><img src="/admin/otkup/${o.id}/${i + 1}" alt="" width="64" height="48" style="object-fit:cover;border-radius:3px"></a>`).join(' ')}</td>
 <td><span class="st">${V.esc(o.status)}</span><br>${st('otkup', o.id, [['nova', 'Nova'], ['kontaktiran', 'Kontaktiran'], ['zavrseno', 'Završeno']])}</td></tr>`).join('') || '<tr><td colspan="4">Nema ponuda.</td></tr>'}</table>
-<h2>Upiti</h2>
-<table><tr><th>Vrijeme</th><th>Ime</th><th>Telefon</th><th>Dio / poruka</th><th>Status</th></tr>
-${inqs.map(q => `<tr><td>${fmtTs(q.created_at)}</td><td>${V.esc(q.name)}</td><td><a href="tel:${V.esc(q.phone)}">${V.esc(q.phone)}</a></td>
-<td>${q.part_id ? `<a href="/dio/${q.part_id}">${V.esc(q.part_title)}</a><br>` : ''}${V.esc(q.message || '')}</td>
-<td><span class="st">${V.esc(q.status)}</span><br>${st('inquiry', q.id, [['novi', 'Novi'], ['rijesen', 'Riješen']])}</td></tr>`).join('') || '<tr><td colspan="5">Nema upita.</td></tr>'}</table></div>`;
+</div>`;
   res.html(V.layout({ title: 'Admin', path: '/admin', noindex: true, body }));
 });
 
