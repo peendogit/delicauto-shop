@@ -132,7 +132,7 @@ function buildList(f) {
 
 // ---------- stranice ----------
 app.get('/static/*', serveStatic(path.join(__dirname, 'public'), 86400));
-app.get('/favicon.ico', (req, res) => res.redirect('/static/favicon.svg', 301));
+app.get('/favicon.ico', (req, res) => res.redirect('/static/favicon.png', 301));
 
 app.get('/', (req, res) => {
   const total = db.prepare('SELECT COUNT(*) AS n FROM parts').get().n;

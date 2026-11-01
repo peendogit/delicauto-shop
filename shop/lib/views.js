@@ -48,15 +48,15 @@ ${noindex ? '<meta name="robots" content="noindex,nofollow">' : ''}
 <meta property="og:url" content="${esc(canonical)}">
 ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">` : ''}
 <meta name="theme-color" content="#0f2a47">
-<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=10">
+<link rel="stylesheet" href="/static/style.css?v=12">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
 <header class="top"><div class="wrap top-in">
-  <a class="brand" href="/"><svg class="logo" viewBox="0 0 48 48" width="46" height="46" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f7bff"/><stop offset="1" stop-color="#0b3fa8"/></linearGradient></defs><path d="M24 2.5l18 10.2v22.6L24 45.5 6 35.3V12.7z" fill="url(#lg)" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/><circle cx="24" cy="24" r="14" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.5"/><path d="M17.5 14.5h7.2c6.1 0 9.8 3.8 9.8 9.5s-3.700 9.500-9.800 9.500h-7.200z M22.200 19v10h2.400c3.100 0 5-2 5-5s-1.900-5-5-5z" fill="#fff" fill-rule="evenodd"/><circle cx="38" cy="10" r="3" fill="#ff8a1f" stroke="#fff" stroke-width="1.2"/></svg><span class="brand-name">Auto Otpad <b>Delić</b><small>Katalog polovnih dijelova</small></span></a>
+  <a class="brand" href="/" aria-label="Auto Otpad Delić — početna"><img class="brand-logo" src="/static/logo.png" alt="Delić" width="237" height="88"><span class="brand-name"><b>Auto otpad</b><small>Katalog polovnih dijelova</small></span></a>
   <form class="top-search" action="/dijelovi" method="get" role="search">
     <input type="search" name="q" placeholder="Brza pretraga: dio, marka, model, kataloški broj…" aria-label="Pretraga" autocomplete="off">
     <button type="submit" aria-label="Traži">Traži</button>
@@ -66,11 +66,11 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
 </header>
 <main class="wrap">${body}</main>
 <footer class="foot"><div class="wrap foot-in">
-  <div><b>${esc(cfg.name)}</b><br>${esc(cfg.city)}, Bosna i Hercegovina${contact ? '<br>' + contact : ''}</div>
+  <div><img class="foot-logo" src="/static/logo.png" alt="Delić" width="158" height="59" loading="lazy"><br><b>${esc(cfg.name)}</b><br>${esc(cfg.city)}, Bosna i Hercegovina${contact ? '<br>' + contact : ''}</div>
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=9" defer></script>
+<script src="/static/app.js?v=10" defer></script>
 </body></html>`;
 }
 
