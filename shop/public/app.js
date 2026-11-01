@@ -289,18 +289,35 @@
 // Padajuća lista prijedloga koja se sužava dok kucaš (umjesto sistemske datalist trake)
 (function () {
   var fold = function (s) { return String(s).toLowerCase().replace(/đ/g, 'dj').normalize('NFD').replace(/[̀-ͯ]/g, ''); };
-  document.querySelectorAll('input[list]').forEach(function (inp) {
-    var dl = document.getElementById(inp.getAttribute('list'));
-    if (!dl) return;
-    var opts = Array.prototype.map.call(dl.options, function (o) { return o.value; });
-    inp.removeAttribute('list'); dl.remove();
+  document.querySelectorAll('input[list], input[data-ac]').forEach(function (inp) {
+    var remote = inp.getAttribute('data-ac'), opts = [];
+    if (!remote) {
+      var dl = document.getElementById(inp.getAttribute('list'));
+      if (!dl) return;
+      opts = Array.prototype.map.call(dl.options, function (o) { return o.value; });
+      inp.removeAttribute('list'); dl.remove();
+    }
     var wrap = inp.closest('label') || inp.parentNode; wrap.classList.add('ac-wrap');
     var ul = document.createElement('ul'); ul.className = 'ac'; ul.hidden = true; wrap.appendChild(ul);
-    var skip = false;
+    var ctl = null, tmr = null;
     function render() {
       var q = fold(inp.value.trim());
+      if (remote) {
+        clearTimeout(tmr);
+        if (!q) { ul.hidden = true; return; }
+        tmr = setTimeout(function () {
+          if (ctl) ctl.abort();
+          ctl = window.AbortController ? new AbortController() : null;
+          fetch(remote + '?q=' + encodeURIComponent(inp.value.trim()), ctl ? { signal: ctl.signal } : {})
+            .then(function (r) { return r.json(); }).then(function (a) { if (document.activeElement === inp) show(a); }).catch(function () {});
+        }, 120);
+        return;
+      }
       var hit = opts.filter(function (o) { return !q || fold(o).indexOf(q) !== -1; });
       hit.sort(function (a, b) { return (fold(a).indexOf(q) === 0 ? 0 : 1) - (fold(b).indexOf(q) === 0 ? 0 : 1); });
+      show(hit);
+    }
+    function show(hit) {
       if (!hit.length || (hit.length === 1 && hit[0] === inp.value)) { ul.hidden = true; return; }
       ul.innerHTML = '';
       hit.slice(0, 60).forEach(function (o) {

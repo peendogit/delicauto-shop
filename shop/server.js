@@ -68,6 +68,11 @@ function cached(key, fn) {
 }
 const makesList = () => cached('makes', () => db.prepare(
   `SELECT make, COUNT(*) AS n FROM parts WHERE make IS NOT NULL AND make <> '' GROUP BY make ORDER BY n DESC`).all());
+const yardForF = f => {
+  if (f.marka && f.model) return yardFor(f.marka, f.model);
+  if (f.vm) { const m = matchCombos(f.vm); return m.slice(0, 5).flatMap(c => yardFor(c.make, c.model)); }
+  return [];
+};
 const yardFor = (marka, model) => (marka && model)
   ? db.prepare('SELECT make, model, year, fuel, engine_code FROM yard_vehicles WHERE make = ? AND model = ? ORDER BY year DESC').all(marka, model) : [];
 const alpha = (a, b) => String(a).localeCompare(String(b), 'bs', { numeric: true });
@@ -83,6 +88,25 @@ const vehiclesOf = (make, model) => cached(`veh:${make}|${model}`, () => db.prep
 const distinctOf = (col, numeric) => cached('d:' + col, () => db.prepare(
   `SELECT DISTINCT ${col} AS v FROM parts WHERE ${col} IS NOT NULL AND ${col} <> ''`).all().map(r => String(r.v))
   .sort(numeric ? (a, b) => parseFloat(a) - parseFloat(b) || alpha(a, b) : alpha));
+// ---- vozilo kucanjem: "A5" -> Audi A5 8T, Audi A5 8F ... ----
+const foldS = x => String(x || '').toLowerCase().replace(/đ/g, 'dj').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const compactS = x => foldS(x).replace(/[^a-z0-9]/g, '');
+const combos = () => cached('combos', () => db.prepare("SELECT make, model, COUNT(*) AS n FROM parts WHERE make <> '' AND model <> '' GROUP BY make, model").all()
+  .map(r => { const label = `${r.make} ${r.model}`; return { make: r.make, model: r.model, n: r.n, label, f: foldS(label), c: compactS(label), words: foldS(label).split(/[^a-z0-9]+/).filter(Boolean) }; }));
+function matchCombos(text) {
+  const toks = foldS(text).split(/\s+/).filter(Boolean).slice(0, 5);
+  if (!toks.length) return [];
+  const exact = combos().filter(c => c.f === foldS(text).trim());
+  if (exact.length) return exact;
+  const hit = combos().filter(c => toks.every(t => c.words.some(w => w.startsWith(t.replace(/[^a-z0-9]/g, ''))) || (compactS(t).length >= 3 && c.c.includes(compactS(t)))));
+  const t0 = toks[0];
+  return hit.sort((a, b) => ((b.f.startsWith(t0) ? 1 : 0) - (a.f.startsWith(t0) ? 1 : 0)) || ((b.words.includes(t0) ? 1 : 0) - (a.words.includes(t0) ? 1 : 0)) || b.n - a.n);
+}
+app.get('/api/vozila', (req, res) => {
+  if (limited(req, res, 900)) return;
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(matchCombos(clean(req.query.q, 60)).slice(0, 30).map(c => c.label));
+});
 function facets(make, model) {
   return {
     makes: makesList().map(m => m.make).sort(alpha),
@@ -115,6 +139,11 @@ function buildList(f) {
     if (f.tip === 'Ostalo') where.push(`(type IS NULL OR type = '' OR type = 'Ostalo')`);
     else if (db.prepare('SELECT 1 FROM parts WHERE type = ? COLLATE NOCASE LIMIT 1').get(f.tip)) { where.push('type = ? COLLATE NOCASE'); args.push(f.tip); }
     else { where.push("type LIKE ? ESCAPE '\\'"); args.push('%' + f.tip.replace(/[\\%_]/g, '\\$&') + '%'); }
+  }
+  if (f.vm) {
+    const m = matchCombos(f.vm).slice(0, 80);
+    if (!m.length) where.push('0 = 1');
+    else { where.push('(' + m.map(() => '(make = ? AND model = ?)').join(' OR ') + ')'); m.forEach(c => args.push(c.make, c.model)); }
   }
   if (f.gorivo) { where.push('fuel = ?'); args.push(f.gorivo); }
   if (f.strana) { where.push('side = ?'); args.push(f.strana); }
@@ -197,7 +226,7 @@ function groupTree(f) {
 }
 
 const readFilters = q => ({
-  q: clean(q.q, 100), marka: clean(q.marka, 60), model: clean(q.model, 100), vozilo: clean(q.vozilo, 100),
+  q: clean(q.q, 100), vm: clean(q.vm, 80), marka: clean(q.marka, 60), model: clean(q.model, 100), vozilo: clean(q.vozilo, 100),
   grupa: clean(q.grupa, 100), tip: clean(q.tip, 100), gorivo: clean(q.gorivo, 40), strana: clean(q.strana, 40),
   ccm: clean(q.ccm, 20), kw: clean(q.kw, 20), sifra: clean(q.sifra, 40), katbr: clean(q.katbr, 60),
   kodmj: clean(q.kodmj, 40), kodmot: clean(q.kodmot, 40), mjenjac: clean(q.mjenjac, 40), brzina: clean(q.brzina, 20),
@@ -243,11 +272,11 @@ app.get('/dijelovi', (req, res) => {
   };
   if (!(parseInt(req.query.page, 10) > 1)) {
     const term = f.q || f.katbr || f.sifra || f.tip || f.kodmot || '';
-    const veh = [f.marka, f.model].filter(Boolean).join(' ');
+    const veh = [f.marka, f.model].filter(Boolean).join(' ') || f.vm;
     stats.search(req, { kind: 'dio', term, vehicle: veh, results: total });
   }
-  if (req.query.frag) { res.setHeader('Cache-Control', 'no-store'); return res.html(V.listFrag({ rows, total, page, pages, f, baseQuery, yard: yardFor(f.marka, f.model) })); }
-  res.html(V.list({ rows, total, page, pages, f, facets: facets(f.marka, f.model), tree: groupTree(f), baseQuery, yard: yardFor(f.marka, f.model) }));
+  if (req.query.frag) { res.setHeader('Cache-Control', 'no-store'); return res.html(V.listFrag({ rows, total, page, pages, f, baseQuery, yard: yardForF(f) })); }
+  res.html(V.list({ rows, total, page, pages, f, facets: facets(f.marka, f.model), tree: groupTree(f), baseQuery, yard: yardForF(f) }));
 });
 
 app.get('/dio/:slug', async (req, res) => {
