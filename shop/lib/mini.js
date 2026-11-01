@@ -69,7 +69,7 @@ function createApp() {
         if (!m) continue;
         req.params = {};
         r.keys.forEach((k, i) => { try { req.params[k] = decodeURIComponent(m[i + 1]); } catch { req.params[k] = m[i + 1]; } });
-        req.body = method === 'POST' ? await readBody(req) : {};
+        req.body = method === 'POST' ? await readBody(req, req.path === '/api/otkup' ? 14000000 : 100000) : {};
         for (const fn of r.fns) { await fn(req, res); if (res.writableEnded) return; }
         if (!res.writableEnded && !res.streaming) res.end();
         return;

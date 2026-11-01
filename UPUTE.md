@@ -53,3 +53,9 @@ Napomene:
 - Cijena iz backupa se prikazuje ako postoji (BAM = KM), inače „Pošalji upit“.
 - **Slike:** u backupu su samo ID-evi. Fajlove slika treba staviti u `UPLOADS_DIR`, a naziv fajla se određuje sa `IMG_PATTERN` u `.env` (zadano `{id}.jpg`).
 - U ovom načinu shop ne rezerviše dio u aplikaciji. Narudžba stiže u Telegram i `/admin`; kad je označiš „završena“, dio nestaje iz shopa.
+
+## Otkup vozila (stranica /otkup)
+
+Posjetilac pošalje ime, telefon, lokaciju, opis i do 8 slika. Ponuda ide: u `/admin` (sekcija „Otkup vozila“, sa slikama), na Telegram i na mail `OTKUP_EMAIL` (slike u prilogu).
+
+Da mail radi, u `.env` upiši `SMTP_USER=autootpaddelic@gmail.com` i `SMTP_PASS=` — to je **lozinka za aplikacije** iz Google računa (Sigurnost → Provjera u 2 koraka → Lozinke za aplikacije), ne obična lozinka. Zatim `pm2 restart delicauto-shop`. Bez toga ponude ipak stižu u admin i Telegram.

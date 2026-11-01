@@ -51,7 +51,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=5">
+<link rel="stylesheet" href="/static/style.css?v=6">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''}</span></div></div>
@@ -63,15 +63,15 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   </form>
   <a class="cart-link" href="/korpa">Korpa <span id="cartN" class="badge" hidden>0</span></a>
 </div>
-<nav class="mainnav" aria-label="Glavni meni"><div class="wrap"><a href="/katalog">Katalog po vozilu</a><a href="/dijelovi">Pretraga dijelova</a><a href="/kontakt">Kontakt</a></div></nav>
+<nav class="mainnav" aria-label="Glavni meni"><div class="wrap"><a href="/katalog">Katalog po vozilu</a><a href="/dijelovi">Pretraga dijelova</a><a href="/otkup" class="nav-hl">Otkup vozila</a><a href="/kontakt">Kontakt</a></div></nav>
 </header>
 <main class="wrap">${body}</main>
 <footer class="foot"><div class="wrap foot-in">
   <div><b>${esc(cfg.name)}</b><br>${esc(cfg.city)}, Bosna i Hercegovina${contact ? '<br>' + contact : ''}</div>
-  <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/kontakt">Kontakt i upit</a></div>
+  <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=5" defer></script>
+<script src="/static/app.js?v=6" defer></script>
 </body></html>`;
 }
 
@@ -172,6 +172,9 @@ ${makes.length ? `<section><div class="sec-h"><h2>Katalog po vozilu</h2><a href=
 <section><div class="sec-h"><h2>Nedavno dodano</h2><a href="/dijelovi">Svi dijelovi →</a></div>
   ${latest.length ? partsTable(latest) : '<p class="muted">Katalog se učitava, pokušaj ponovo za koji trenutak.</p>'}
 </section>
+<section class="cta buy-cta"><h2>Otkupljujemo havarisana vozila</h2>
+  <p>Prodaješ vozilo u kvaru ili nakon udesa? Pošalji slike i lokaciju, javimo se brzo s ponudom.</p>
+  <a class="btn" href="/otkup">Pošalji vozilo za otkup</a></section>
 <section class="cta"><h2>Ne nalaziš dio?</h2>
   <p>Pošalji nam upit s modelom i godištem vozila, javit ćemo se čim prije.</p>
   <a class="btn" href="/kontakt">Pošalji upit</a></section>`;
@@ -368,6 +371,33 @@ ${specs ? `<section class="sheet"><h2>Specifikacija dijela</h2><div class="sheet
   });
 }
 
+function buyout() {
+  const phone = cfg.phoneTel;
+  const body = `
+<nav class="crumbs"><a href="/">Početna</a> › <span>Otkup vozila</span></nav>
+<section class="panel buy-page"><div class="panel-h"><h1>Otkup havarisanih vozila</h1></div>
+  <p class="lead">Otkupljujemo havarisana, neispravna i otpisana vozila. Pošalji nekoliko slika i podatke, a mi ćemo ti se javiti s ponudom${phone ? ` — ili nas odmah nazovi na <a href="tel:${esc(phone)}">${esc(cfg.phone)}</a>` : ''}.</p>
+  <form id="otkup-form" class="box otkup" novalidate>
+    <input class="hp" type="text" name="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <div class="sf-grid">
+      <label class="f"><span>Ime i prezime *</span><input name="name" required maxlength="80" autocomplete="name"></label>
+      <label class="f"><span>Telefon *</span><input name="phone" type="tel" required maxlength="40" autocomplete="tel"></label>
+      <label class="f"><span>Gdje se vozilo nalazi (grad / mjesto) *</span><input name="location" required maxlength="120" autocomplete="address-level2"></label>
+      <label class="f"><span>Marka, model, godište</span><input name="vehicle" maxlength="120" placeholder="npr. Audi A4 2012"></label>
+    </div>
+    <label class="f"><span>Opis stanja (šta je oštećeno, da li se pokreće, papiri…)</span><textarea name="description" rows="4" maxlength="1500"></textarea></label>
+    <div class="f"><span>Slike vozila (do 8)</span>
+      <input id="otkup-files" type="file" accept="image/*" multiple>
+      <div id="otkup-prev" class="prev"></div>
+      <small class="muted">Slike se automatski smanje prije slanja.</small></div>
+    <button type="submit" class="btn">Pošalji ponudu</button>
+    <p class="form-msg" role="status"></p>
+  </form>
+</section>`;
+  return layout({ title: 'Otkup havarisanih vozila', path: '/otkup', body,
+    desc: `Otkup havarisanih i neispravnih vozila — ${cfg.name}, ${cfg.city}. Pošalji slike i lokaciju, javimo se s ponudom.` });
+}
+
 function unavailable(id) {
   return layout({
     title: 'Dio više nije dostupan', path: '/dio/' + id, noindex: true,
@@ -413,4 +443,4 @@ function notFound() {
   return layout({ title: 'Stranica nije pronađena', noindex: true, body: `<div class="empty"><h1>Stranica nije pronađena</h1><p><a class="btn" href="/">Na početnu</a></p></div>` });
 }
 
-module.exports = { listFrag, esc, slugify, nice, partTitle, partUrl, imgUrl, money, rowToPart, parseImgs, layout, home, list, catalog, detail, unavailable, cart, contact, notFound };
+module.exports = { buyout, listFrag, esc, slugify, nice, partTitle, partUrl, imgUrl, money, rowToPart, parseImgs, layout, home, list, catalog, detail, unavailable, cart, contact, notFound };

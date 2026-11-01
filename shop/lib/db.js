@@ -28,6 +28,9 @@ function open(dataDir) {
     CREATE TABLE IF NOT EXISTS inquiries (
       id INTEGER PRIMARY KEY AUTOINCREMENT, part_id INTEGER, part_title TEXT, name TEXT, phone TEXT, email TEXT,
       message TEXT, status TEXT NOT NULL DEFAULT 'novi', created_at INTEGER);
+    CREATE TABLE IF NOT EXISTS buyouts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, location TEXT, vehicle TEXT, description TEXT,
+      images INTEGER NOT NULL DEFAULT 0, mailed INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'nova', created_at INTEGER);
   `);
   try { db.exec('ALTER TABLE parts ADD COLUMN catalog_norm TEXT'); } catch { /* kolona već postoji */ }
   return db;

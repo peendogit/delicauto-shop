@@ -123,6 +123,47 @@
     });
   });
 
+  // otkup vozila: slike se smanje u pregledniku (max 1600px, JPEG) pa šalju zajedno s formom
+  var of = document.getElementById('otkup-form');
+  if (of) {
+    var files = [], prev = document.getElementById('otkup-prev'), inp = document.getElementById('otkup-files');
+    function shrink(file) {
+      return new Promise(function (resolve) {
+        var url = URL.createObjectURL(file), img = new Image();
+        img.onload = function () {
+          var sc = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+          c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+          resolve(c.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
+        img.src = url;
+      });
+    }
+    function drawPrev() {
+      prev.innerHTML = files.map(function (d, i) { return '<span class="pv"><img src="' + d + '" alt=""><button type="button" data-rm="' + i + '" aria-label="Ukloni">×</button></span>'; }).join('');
+    }
+    prev.addEventListener('click', function (e) { var b = e.target.closest('[data-rm]'); if (b) { files.splice(Number(b.getAttribute('data-rm')), 1); drawPrev(); } });
+    inp.addEventListener('change', function () {
+      var list = Array.prototype.slice.call(inp.files).slice(0, 8 - files.length);
+      Promise.all(list.map(shrink)).then(function (r) { r.forEach(function (d) { if (d && files.length < 8) files.push(d); }); drawPrev(); inp.value = ''; });
+    });
+    of.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var msg = of.querySelector('.form-msg'), btn = of.querySelector('button[type=submit]');
+      var data = {}; new FormData(of).forEach(function (v, k) { if (k !== 'images') data[k] = v; });
+      data.images = files;
+      btn.disabled = true; msg.className = 'form-msg'; msg.textContent = 'Šaljem…';
+      fetch('/api/otkup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (r) {
+          if (r.ok) { of.innerHTML = '<h2>Hvala!</h2><p>Ponuda je poslana. Javit ćemo ti se čim prije.</p>'; window.scrollTo(0, 0); }
+          else { msg.className = 'form-msg err'; msg.textContent = r.j.error || 'Slanje nije uspjelo.'; btn.disabled = false; }
+        })
+        .catch(function () { msg.className = 'form-msg err'; msg.textContent = 'Nema veze ili su slike prevelike, pokušaj s manje slika.'; btn.disabled = false; });
+    });
+  }
+
   // stranica korpe
   var root = document.getElementById('cart-root');
   if (root) renderCart();

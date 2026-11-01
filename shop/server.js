@@ -8,6 +8,7 @@ const dbm = require('./lib/db');
 const appApi = require('./lib/appClient');
 const { makeSync } = require('./lib/sync');
 const { notify } = require('./lib/notify');
+const { sendMail } = require('./lib/mail');
 const V = require('./lib/views');
 
 let sharp = null;
@@ -376,7 +377,7 @@ app.get('/sitemap.xml', (req, res) => {
     Array.from({ length: chunks }, (_, i) => `<sitemap><loc>${cfg.siteUrl}/sitemap-dijelovi-${i + 1}.xml</loc></sitemap>`).join('')}</sitemapindex>`), 'application/xml; charset=utf-8');
 });
 app.get('/sitemap-pages.xml', (req, res) => {
-  const urls = ['/', '/katalog', '/dijelovi', '/kontakt', ...makesList().map(m => '/katalog?marka=' + encodeURIComponent(m.make))];
+  const urls = ['/', '/katalog', '/dijelovi', '/otkup', '/kontakt', ...makesList().map(m => '/katalog?marka=' + encodeURIComponent(m.make))];
   res.send(xml(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(u => `<url><loc>${V.esc(cfg.siteUrl + u)}</loc></url>`).join('')}</urlset>`), 'application/xml; charset=utf-8');
 });
 app.get('/sitemap-dijelovi-:n.xml', (req, res) => {
@@ -404,11 +405,60 @@ function sameOrigin(req) {
 }
 const fmtTs = t => new Date(t).toLocaleString('bs-BA', { timeZone: 'Europe/Sarajevo' });
 
+// ---- otkup vozila: formular sa slikama; ponuda ide na mail, u admin i na Telegram ----
+const OTKUP_DIR = path.join(cfg.dataDir, 'otkup');
+app.get('/otkup', (req, res) => res.html(V.buyout()));
+app.post('/api/otkup', async (req, res) => {
+  if (limited(req, res, 4)) return;
+  const b = req.body || {};
+  if (b.hp) return res.json({ ok: true });
+  const name = clean(b.name, 80), phone = clean(b.phone, 40), location = clean(b.location, 120);
+  const vehicle = clean(b.vehicle, 120), desc = String(b.description ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ' ').trim().slice(0, 1500);
+  if (name.length < 2) return res.json({ error: 'Upiši ime i prezime.' }, 400);
+  if (digits(phone).length < 6) return res.json({ error: 'Upiši ispravan broj telefona.' }, 400);
+  if (location.length < 2) return res.json({ error: 'Upiši gdje se vozilo nalazi.' }, 400);
+  const imgs = [];
+  for (const d of (Array.isArray(b.images) ? b.images.slice(0, 8) : [])) {
+    const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(d));
+    if (!m) continue;
+    const buf = Buffer.from(m[1], 'base64');
+    if (buf.length < 500 || buf.length > 2_500_000 || buf[0] !== 0xff || buf[1] !== 0xd8) continue;
+    imgs.push(buf);
+  }
+  const r = db.prepare('INSERT INTO buyouts(name, phone, location, vehicle, description, images, created_at) VALUES (?,?,?,?,?,?,?)')
+    .run(name, phone, location, vehicle, desc, imgs.length, Date.now());
+  const id = Number(r.lastInsertRowid);
+  try { fs.mkdirSync(OTKUP_DIR, { recursive: true }); imgs.forEach((buf, i) => fs.writeFileSync(path.join(OTKUP_DIR, `${id}-${i + 1}.jpg`), buf)); }
+  catch (e) { console.error('[otkup] snimanje slika', e.message); }
+  const text = `Nova ponuda za otkup vozila (#${id})\n\nIme: ${name}\nTelefon: ${phone}\nLokacija vozila: ${location}\nVozilo: ${vehicle || '—'}\nSlika: ${imgs.length}\n\nOpis stanja:\n${desc || '—'}\n\nAdmin: ${cfg.siteUrl}/admin\n`;
+  const mailed = await sendMail({ to: cfg.mailTo, subject: `Otkup vozila: ${vehicle || 'novo vozilo'} — ${location}`, text,
+    attachments: imgs.map((data, i) => ({ filename: `vozilo-${id}-${i + 1}.jpg`, contentType: 'image/jpeg', data })) });
+  if (mailed) db.prepare('UPDATE buyouts SET mailed = 1 WHERE id = ?').run(id);
+  notify(`🚗 Ponuda za otkup #${id}\n${name} · ${phone}\n${vehicle || ''}\nLokacija: ${location}\nSlika: ${imgs.length}${mailed ? ' · poslano na mail' : ''}\n${cfg.siteUrl}/admin`);
+  res.json({ ok: true });
+});
+app.get('/admin/otkup/:id/:n', (req, res) => {
+  if (!adminAuth(req, res)) return;
+  const id = parseInt(req.params.id, 10), n = parseInt(req.params.n, 10);
+  const f = path.join(OTKUP_DIR, `${id}-${n}.jpg`);
+  if (!(id > 0 && n > 0) || !fs.existsSync(f)) return res.html('Nema slike', 404);
+  res.setHeader('Content-Type', 'image/jpeg'); res.setHeader('Cache-Control', 'private, max-age=3600');
+  res.end(fs.readFileSync(f));
+});
+app.post('/admin/otkup/:id', (req, res) => {
+  if (!adminAuth(req, res)) return;
+  if (!sameOrigin(req)) return res.html('Zabranjeno', 403);
+  const status = ['nova', 'kontaktiran', 'zavrseno'].includes(req.body.status) ? req.body.status : null;
+  if (status) db.prepare('UPDATE buyouts SET status = ? WHERE id = ?').run(status, Number(req.params.id));
+  res.redirect('/admin', 303);
+});
+
 app.get('/admin', (req, res) => {
   if (!adminAuth(req, res)) return;
   const orders = db.prepare('SELECT * FROM orders ORDER BY id DESC LIMIT 100').all();
   const items = db.prepare('SELECT * FROM order_items WHERE order_id IN (SELECT id FROM orders ORDER BY id DESC LIMIT 100)').all();
   const inqs = db.prepare('SELECT * FROM inquiries ORDER BY id DESC LIMIT 100').all();
+  const buys = db.prepare('SELECT * FROM buyouts ORDER BY id DESC LIMIT 100').all();
   const st = (action, id, opts) => `<form class="inline" method="post" action="/admin/${action}/${id}">${opts.map(([v, t]) =>
     `<button name="status" value="${v}">${t}</button>`).join(' ')}</form>`;
   const s = sync.status;
@@ -425,6 +475,12 @@ ${o.delivery === 'dostava' ? V.esc(`${o.city}, ${o.address}`) : 'Preuzimanje'}${
 <td>${V.esc(V.money(o.total))}</td>
 <td><span class="st">${V.esc(o.status)}</span><br>${st('order', o.id, [['nova', 'Nova'], ['potvrdjena', 'Potvrđena'], ['zavrsena', 'Završena'], ['otkazana', 'Otkaži + oslobodi dio']])}</td></tr>`).join('') || '<tr><td colspan="6">Nema narudžbi.</td></tr>'}</table>
 <p class="muted small">Kad završiš prodaju, u aplikaciji klikni „Prodaj dio“ — dio tada nestaje iz shopa. Rezervacija se sama poništi nakon 14 dana.</p>
+<h2>Otkup vozila</h2>
+<table><tr><th>Vrijeme</th><th>Ponuda</th><th>Slike</th><th>Status</th></tr>
+${buys.map(o => `<tr><td>${fmtTs(o.created_at)}<br>#${o.id}${o.mailed ? '<br><small>mail ✓</small>' : ''}</td>
+<td>${V.esc(o.name)}<br><a href="tel:${V.esc(o.phone)}">${V.esc(o.phone)}</a><br>${V.esc(o.location)}<br><b>${V.esc(o.vehicle || '')}</b>${o.description ? '<br><i>' + V.esc(o.description) + '</i>' : ''}</td>
+<td>${Array.from({ length: o.images }, (_, i) => `<a href="/admin/otkup/${o.id}/${i + 1}" target="_blank"><img src="/admin/otkup/${o.id}/${i + 1}" alt="" width="64" height="48" style="object-fit:cover;border-radius:3px"></a>`).join(' ')}</td>
+<td><span class="st">${V.esc(o.status)}</span><br>${st('otkup', o.id, [['nova', 'Nova'], ['kontaktiran', 'Kontaktiran'], ['zavrseno', 'Završeno']])}</td></tr>`).join('') || '<tr><td colspan="4">Nema ponuda.</td></tr>'}</table>
 <h2>Upiti</h2>
 <table><tr><th>Vrijeme</th><th>Ime</th><th>Telefon</th><th>Dio / poruka</th><th>Status</th></tr>
 ${inqs.map(q => `<tr><td>${fmtTs(q.created_at)}</td><td>${V.esc(q.name)}</td><td><a href="tel:${V.esc(q.phone)}">${V.esc(q.phone)}</a></td>

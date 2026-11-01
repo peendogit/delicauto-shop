@@ -166,6 +166,18 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
     o = await post('/api/upit', { name: 'Bot', phone: '065 111 222', hp: 'spam' }); ok(o.status === 200, 'honeypot tiho prihvaćen');
     r = await fetch(S('/admin'), { headers: { authorization: basic } }); ok((await r.text()).includes('Koja cijena?') && !(await Promise.resolve('')).includes('Bot'), 'upit vidljiv u adminu');
 
+    console.log('Otkup vozila');
+    r = await get('/otkup'); ok(r.status === 200 && r.text.includes('otkup-form') && r.text.includes('Otkup'), 'stranica otkupa');
+    const jpg = 'data:image/jpeg;base64,' + Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(900, 7)]).toString('base64');
+    o = await post('/api/otkup', { name: 'Pero', phone: '1', location: 'Bijeljina' }); ok(o.status === 400, 'otkup: neispravan telefon odbijen');
+    o = await post('/api/otkup', { name: 'Pero Peric', phone: '065 333 444', location: 'Brčko', vehicle: 'Golf 5 2005', description: 'Udaren naprijed', images: [jpg, 'data:text/html;base64,AAAA'] });
+    ok(o.status === 200, 'otkup: ponuda prihvaćena');
+    r = await fetch(S('/admin'), { headers: { authorization: basic } }); const adm = await r.text();
+    ok(adm.includes('Golf 5 2005') && adm.includes('/admin/otkup/1/1') && !adm.includes('/admin/otkup/1/2'), 'otkup: ponuda i samo ispravna slika u adminu');
+    r = await fetch(S('/admin/otkup/1/1')); ok(r.status === 401, 'otkup: slika zaštićena lozinkom');
+    r = await fetch(S('/admin/otkup/1/1'), { headers: { authorization: basic } }); ok(r.status === 200 && r.headers.get('content-type') === 'image/jpeg', 'otkup: slika dostupna adminu');
+    r = await get('/'); ok(r.text.includes('/otkup'), 'meni vodi na otkup');
+
     console.log('SEO');
     r = await get('/sitemap.xml'); ok(r.text.includes('sitemap-dijelovi-1.xml'), 'sitemap indeks');
     r = await get('/sitemap-dijelovi-1.xml'); ok(r.text.includes('/dio/'), 'sitemap dijelova');
