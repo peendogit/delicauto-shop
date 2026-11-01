@@ -54,7 +54,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=34">
+<link rel="stylesheet" href="/static/style.css?v=35">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -94,11 +94,14 @@ function card(p) {
 const warranty = (cls = '') => `<span class="warr ${cls}"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.600-8-6-8-11V5z" fill="#1b7f3a"/><path d="M8 12l3 3 5-6" fill="none" stroke="#fff" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"/></svg>Garancija 7 dana</span>`;
 
 // dugmad za kontakt uz dio: Pozovi, Viber, WhatsApp
+const IC_VB = '<svg class="ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2C6.800 2 3.500 4.200 3.500 9.500c0 3 1 5 2.800 6.300V20l3.400-2.200c.7.1 1.500.2 2.300.2 5.200 0 8.500-2.200 8.500-7.500S17.200 2 12 2zm3.700 11.500c-.3.500-.9.900-1.400.8-2.700-.7-4.800-2.800-5.500-5.500-.1-.5.300-1.100.8-1.400l.7-.4c.3-.2.700-.1.900.2l.6 1c.1.300.1.600-.2.800l-.4.300c.4 1.100 1.300 2 2.400 2.400l.3-.4c.2-.3.500-.3.800-.2l1 .6c.3.200.4.600.2.900z"/></svg>';
+const IC_WA = '<svg class="ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.600 15.100L2 22l5-1.300A10 10 0 1012 2zm5.200 14.200c-.2.600-1.300 1.200-1.800 1.200-.5.100-1 .2-3.300-.7-2.800-1.200-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.9 2.100c.1.200.1.400 0 .5l-.4.600c-.1.200-.3.300-.1.600.7 1.100 1.500 1.900 2.700 2.500.3.100.4.100.6-.1l.8-1c.2-.2.400-.2.600-.1l2 1c.3.100.4.200.5.300 0 .3 0 .9-.1 1.200z"/></svg>';
+const IC_CALL = '<svg class="ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M6.600 10.800a15.100 15.100 0 006.600 6.600l2.200-2.200a1 1 0 011-.25 11.400 11.400 0 003.600.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.500a1 1 0 011 1c0 1.300.2 2.500.57 3.600a1 1 0 01-.25 1z"/></svg>';
 function contactBtnsMsg(msg, cls = 'sm', order = false) {
   const wa = `https://wa.me/${cfg.waNumber}?text=${encodeURIComponent(msg)}`;
-  return `<span class="cbtns">${order ? '' : `<a class="btn ${cls} call" href="tel:${esc(cfg.phoneTel)}">Pozovi</a>`}`
-    + `<a class="btn ${cls} vb" href="viber://chat?number=${esc(encodeURIComponent(cfg.viber))}&amp;draft=${esc(encodeURIComponent(msg))}" rel="nofollow">${order ? '<svg class="ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2C6.800 2 3.500 4.200 3.500 9.500c0 3 1 5 2.800 6.300V20l3.400-2.200c.7.1 1.500.2 2.300.2 5.200 0 8.500-2.200 8.500-7.500S17.200 2 12 2zm3.700 11.500c-.3.500-.9.900-1.400.8-2.700-.7-4.800-2.800-5.500-5.500-.1-.5.300-1.100.8-1.400l.7-.4c.3-.2.700-.1.900.2l.6 1c.1.300.1.600-.2.800l-.4.300c.4 1.100 1.300 2 2.400 2.400l.3-.4c.2-.3.500-.3.800-.2l1 .6c.3.200.4.600.2.900z"/></svg><span>Viber narudžba</span>' : 'Viber'}</a>`
-    + `<a class="btn ${cls} wa" href="${esc(wa)}" target="_blank" rel="noopener nofollow">${order ? '<svg class="ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 00-8.600 15.100L2 22l5-1.300A10 10 0 1012 2zm5.200 14.200c-.2.600-1.300 1.200-1.800 1.200-.5.100-1 .2-3.300-.7-2.800-1.200-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.9 2.100c.1.200.1.400 0 .5l-.4.600c-.1.200-.3.300-.1.600.7 1.100 1.500 1.900 2.700 2.500.3.100.4.100.6-.1l.8-1c.2-.2.400-.2.600-.1l2 1c.3.100.4.200.5.300 0 .3 0 .9-.1 1.200z"/></svg><span>WhatsApp narudžba</span>' : 'WhatsApp'}</a></span>`;
+  return `<span class="cbtns">${order ? '' : `<a class="btn ${cls} call" href="tel:${esc(cfg.phoneTel)}">${IC_CALL}<span>Pozovi</span></a>`}`
+    + `<a class="btn ${cls} vb" href="viber://chat?number=${esc(encodeURIComponent(cfg.viber))}&amp;draft=${esc(encodeURIComponent(msg))}" rel="nofollow">${IC_VB}<span>${order ? 'Viber narudžba' : 'Viber'}</span></a>`
+    + `<a class="btn ${cls} wa" href="${esc(wa)}" target="_blank" rel="noopener nofollow">${IC_WA}<span>${order ? 'WhatsApp narudžba' : 'WhatsApp'}</span></a></span>`;
 }
 function contactBtns(p, cls = 'sm') {
   const code = p.internal ? `, šifra ${p.internal}` : '';

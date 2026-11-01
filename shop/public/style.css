@@ -371,3 +371,7 @@ details.adv>summary{cursor:pointer;padding:11px 12px;font-weight:600;color:#0f2a
 details.adv>summary::before{content:'▸ ';color:#f5a300}details.adv[open]>summary::before{content:'▾ '}
 details.adv>summary em{font-style:normal;font-size:.75rem;background:#f5a300;color:#0f2a47;border-radius:9px;padding:1px 7px;margin-left:6px}
 details.adv .sf-grid{padding:4px 12px 12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+
+.cbtns .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.cbtns .btn .ic{flex:none;width:18px;height:18px}
+.buy .cbtns .btn .ic{width:20px;height:20px}
