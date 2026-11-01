@@ -7,7 +7,7 @@ const { createApp, serveStatic } = require('./lib/mini');
 const dbm = require('./lib/db');
 const appApi = require('./lib/appClient');
 const { makeSync } = require('./lib/sync');
-const { notify } = require('./lib/notify');
+const { notify, notifyPhotos } = require('./lib/notify');
 const { sendMail } = require('./lib/mail');
 const V = require('./lib/views');
 
@@ -506,7 +506,8 @@ app.post('/api/otkup', async (req, res) => {
   const mailed = await sendMail({ to: cfg.mailTo, subject: `Otkup vozila: ${vehicle || 'novo vozilo'} — ${location}`, text,
     attachments: imgs.map((data, i) => ({ filename: `vozilo-${id}-${i + 1}.jpg`, contentType: 'image/jpeg', data })) });
   if (mailed) db.prepare('UPDATE buyouts SET mailed = 1 WHERE id = ?').run(id);
-  notify(`🚗 Ponuda za otkup #${id}\n${name} · ${phone}\n${vehicle || ''}\nLokacija: ${location}\nSlika: ${imgs.length}${mailed ? ' · poslano na mail' : ''}\n${cfg.siteUrl}/admin`);
+  notify(`🚗 Ponuda za otkup #${id}\nIme: ${name}\nTelefon: ${phone}\nVozilo: ${vehicle || '—'}\nLokacija: ${location}\nOpis: ${desc || '—'}\nSlika: ${imgs.length}${mailed ? ' · poslano na mail' : ''}\n${cfg.siteUrl}/admin`)
+    .then(() => notifyPhotos(imgs, `Otkup #${id} · ${name} · ${phone}`));
   res.json({ ok: true });
 });
 app.get('/admin/otkup/:id/:n', (req, res) => {
