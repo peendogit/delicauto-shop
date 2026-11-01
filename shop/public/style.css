@@ -352,3 +352,5 @@ details.gdet>summary{font-weight:700;font-size:1.05rem;padding:10px 0;cursor:poi
 .otr.new{border-left:4px solid #f5a300}.otr b{font-size:1rem}.otr span{grid-column:1;font-size:.88rem;color:#445}.otr small{grid-column:1;color:#778;font-size:.78rem}
 .otr em{grid-column:2;grid-row:1 / span 3;align-self:center;font-style:normal;font-size:.75rem;background:#eef2f7;border-radius:10px;padding:3px 9px}
 .otimgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.otimgs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:5px;border:1px solid var(--line)}
+
+.hours ul{list-style:none;margin:.3rem 0 0;padding:0}.hours li{padding:2px 0}

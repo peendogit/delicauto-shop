@@ -51,6 +51,7 @@ module.exports = {
   smtpUser: (e.SMTP_USER || '').trim(), smtpPass: (e.SMTP_PASS || '').replace(/\s+/g, ''),
   dataDir: path.resolve(path.join(__dirname, '..'), e.DATA_DIR || './data'),
   pollSeconds: Math.max(2, Number(e.POLL_SECONDS) || 20),
-  hours: (e.SHOP_HOURS || '09:00 – 17:00').trim(),
+  // radno vrijeme: redovi odvojeni znakom |
+  hours: (e.SHOP_HOURS || 'Pon–Pet: 09:00 – 17:00|Subota: 09:00 – 15:00|Nedjelja: ne radimo').split('|').map(x => x.trim()).filter(Boolean),
   pageSize: 24,
 };
