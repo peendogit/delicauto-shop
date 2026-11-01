@@ -5,6 +5,7 @@
 const cfg = require('../lib/config');
 (async () => {
   if (!cfg.tgToken) return console.log('Nema TELEGRAM_BOT_TOKEN u .env');
+  if (!/^\d{6,12}:[A-Za-z0-9_-]{30,}$/.test(cfg.tgToken)) return console.log('Token nema ispravan oblik. Mora izgledati ovako: 1234567890:AAH... (brojevi, dvotačka, pa slova), bez razmaka i bez navodnika.\nDuzina koju sam procitao: ' + cfg.tgToken.length + ' znakova, počinje sa: ' + cfg.tgToken.slice(0, 4) + '…\nProvjeri .env: linija mora biti TELEGRAM_BOT_TOKEN=token (bez razmaka oko =).');
   const api = m => `https://api.telegram.org/bot${cfg.tgToken}/${m}`;
   if (!cfg.tgChat) {
     const r = await (await fetch(api('getUpdates'))).json();
