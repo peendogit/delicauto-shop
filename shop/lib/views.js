@@ -54,7 +54,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=19">
+<link rel="stylesheet" href="/static/style.css?v=20">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -87,22 +87,22 @@ function card(p) {
     : '<div class="noimg">Nema slike</div>'}</div>
   <div class="card-b"><h3>${esc(title)}</h3>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}
   <div class="card-f">${p.price ? `<span class="price">${esc(money(p.price))}</span>` : '<span class="ask">Pošalji upit</span>'}
-  ${p.internal ? `<span class="code">${esc(p.internal)}</span>` : ''}</div>${warranty('sm')}</div></a></article>`;
+  ${p.internal ? `<span class="code">${esc(p.internal)}</span>` : ''}</div></div></a></article>`;
 }
 
 // mala ikona + tekst garancije
 const warranty = (cls = '') => `<span class="warr ${cls}"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.600-8-6-8-11V5z" fill="#1b7f3a"/><path d="M8 12l3 3 5-6" fill="none" stroke="#fff" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"/></svg>Garancija 7 dana</span>`;
 
 // dugmad za kontakt uz dio: Pozovi, Viber, WhatsApp
-function contactBtnsMsg(msg, cls = 'sm') {
+function contactBtnsMsg(msg, cls = 'sm', order = false) {
   const wa = `https://wa.me/${cfg.waNumber}?text=${encodeURIComponent(msg)}`;
-  return `<span class="cbtns"><a class="btn ${cls} call" href="tel:${esc(cfg.phoneTel)}">Pozovi</a>`
-    + `<a class="btn ${cls} vb" href="viber://chat?number=${esc(encodeURIComponent(cfg.viber))}" data-copy="${esc(msg)}" rel="nofollow">Viber</a>`
-    + `<a class="btn ${cls} wa" href="${esc(wa)}" target="_blank" rel="noopener nofollow">WhatsApp</a></span>`;
+  return `<span class="cbtns">${order ? '' : `<a class="btn ${cls} call" href="tel:${esc(cfg.phoneTel)}">Pozovi</a>`}`
+    + `<a class="btn ${cls} vb" href="viber://chat?number=${esc(encodeURIComponent(cfg.viber))}" data-copy="${esc(msg)}" rel="nofollow">${order ? 'Viber narudžba' : 'Viber'}</a>`
+    + `<a class="btn ${cls} wa" href="${esc(wa)}" target="_blank" rel="noopener nofollow">${order ? 'WhatsApp narudžba' : 'WhatsApp'}</a></span>`;
 }
 function contactBtns(p, cls = 'sm') {
   const code = p.internal ? `, šifra ${p.internal}` : '';
-  return contactBtnsMsg(`Zdravo, vidio sam ovaj dio na vašem sajtu: ${partTitle(p)}${code}. Interesuje me cijena.\n${cfg.siteUrl}${partUrl(p)}`, cls);
+  return contactBtnsMsg(`Zdravo, vidio sam ovaj dio na vašem sajtu: ${partTitle(p)}${code}. Interesuje me cijena.\n${cfg.siteUrl}${partUrl(p)}`, cls, true);
 }
 
 // obavijest: vozilo je na placu (cijelo, nije rastavljeno) -> možda imamo dio koji još nije u bazi
@@ -171,7 +171,7 @@ function partRow(p, i, start = 0) {
   <td class="c-no">${start + i + 1}</td>
   <td class="c-img"><a href="${url}" tabindex="-1">${imgs[0] ? `<img src="${imgUrl(imgs[0], 240)}" loading="lazy" alt="" width="240" height="180">` : '<span class="noimg">—</span>'}</a></td>
   <td data-l="Šifra" class="mono">${esc(p.internal || '—')}</td>
-  <td data-l="Dio" class="c-name"><a href="${url}">${esc(nice(p.type) || 'Dio')}</a>${p.group ? `<small>${esc(p.group)}</small>` : ''}${warranty('sm')}</td>
+  <td data-l="Dio" class="c-name"><a href="${url}">${esc(nice(p.type) || 'Dio')}</a>${p.group ? `<small>${esc(p.group)}</small>` : ''}</td>
   <td data-l="Vozilo" class="c-veh"><b>${esc(veh || '—')}</b>${veh2 ? `<small>${esc(veh2)}</small>` : ''}</td>
   <td data-l="Kat. broj" class="mono${p.catalog ? '' : ' e'}">${esc(p.catalog || '—')}</td>
   <td data-l="Strana" class="${p.side ? '' : 'e'}">${esc(p.side || '—')}</td>
@@ -451,7 +451,7 @@ function rimDetail(r) {
     <div class="box buy">
       ${r.price ? `<div class="price big">${esc(money(r.price))}</div>` : '<div class="ask big">Cijena na upit</div>'}
       <p class="muted">Pozovi ili nam piši — rado ćemo ti odgovoriti.</p>
-      ${contactBtnsMsg(msg, '')}
+      ${contactBtnsMsg(msg, '', true)}
     </div>
     ${r.note ? `<p class="note">${esc(r.note)}</p>` : ''}
   </section>
