@@ -17,6 +17,14 @@ function loadEnv(file) {
 loadEnv(path.join(__dirname, '..', '.env'));
 
 const e = process.env;
+// telefon: 066 027 888, 0038766027888 ili +38766027888 -> prikaz "+387 66 027 888", poziv "+38766027888"
+const phoneInfo = (() => {
+  let d = String(e.SHOP_PHONE || '+387 66 027 888').replace(/\D/g, '');
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.startsWith('0')) d = '387' + d.slice(1);
+  const m = /^387(\d{2})(\d{3})(\d{3})$/.exec(d);
+  return { tel: '+' + d, display: m ? `+387 ${m[1]} ${m[2]} ${m[3]}` : '+' + d };
+})();
 module.exports = {
   port: Number(e.PORT) || 3010,
   siteUrl: (e.SITE_URL || 'http://localhost:' + (e.PORT || 3010)).replace(/\/+$/, ''),
@@ -26,8 +34,8 @@ module.exports = {
   uploadsDir: e.UPLOADS_DIR || '',
   name: e.SHOP_NAME || 'Auto Otpad Delić',
   city: e.SHOP_CITY || 'Bijeljina',
-  phone: (e.SHOP_PHONE || '066 027 888').trim(),
-  phoneTel: (e.SHOP_PHONE || '066 027 888').replace(/[^\d+]/g, '').replace(/^0/, '+387'),
+  phone: phoneInfo.display,
+  phoneTel: phoneInfo.tel,
   viber: (e.SHOP_VIBER || '+38766027888').replace(/[^\d+]/g, ''),
   waNumber: (e.SHOP_WHATSAPP || e.SHOP_VIBER || '+38766027888').replace(/\D/g, ''),
   email: (e.SHOP_EMAIL || '').trim(),

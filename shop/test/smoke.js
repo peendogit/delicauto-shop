@@ -62,7 +62,7 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
   const shop = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], {
     env: { ...process.env, PORT: SHOP_PORT, APP_URL: `http://127.0.0.1:${APP_PORT}`, APP_API_KEY: KEY, UPLOADS_DIR: uploads,
       DATA_DIR: path.join(tmp, 'data'), ADMIN_USER: 'nino', ADMIN_PASS: 'tajna123', POLL_SECONDS: '2', SITE_URL: 'https://delicauto.com',
-      SHOP_PHONE: '066 027 888', NODE_PATH: process.env.NODE_PATH || '' },
+      SHOP_PHONE: '+387 66 027 888', NODE_PATH: process.env.NODE_PATH || '' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let log = ''; shop.stdout.on('data', d => log += d); shop.stderr.on('data', d => log += d);

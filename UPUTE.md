@@ -25,7 +25,7 @@ Kako radi: webshop ima katalog kao TecDoc — na početnoj biraš marku → mode
 
 1. Stavi `shop/` na GitHub (npr. repo `delicauto-shop`; `.env` se ne šalje) i kloniraj na VPS.
 2. `cd delicauto-shop && npm install --omit=dev` (instalira `better-sqlite3` i `sharp` za brže slike; radi i bez njih na Node 22+)
-3. `cp .env.example .env` pa popuni: `APP_API_KEY` (isti kao SHOP_API_KEY), `UPLOADS_DIR`, telefon (`SHOP_PHONE`, već je 066 027 888), `ADMIN_PASS`, Telegram.
+3. `cp .env.example .env` pa popuni: `APP_API_KEY` (isti kao SHOP_API_KEY), `UPLOADS_DIR`, telefon (`SHOP_PHONE`, već je +387 66 027 888), `ADMIN_PASS`, Telegram.
 4. `pm2 start ecosystem.config.cjs && pm2 save`
 5. Nginx: `deploy/nginx-delicauto.conf` → `certbot --nginx -d delicauto.com -d www.delicauto.com`. DNS: A zapis `delicauto.com` i `www` → 158.220.96.229.
 6. Auto-deploy (opciono): cron linija iz `deploy/deploy.sh`.
