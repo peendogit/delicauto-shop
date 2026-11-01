@@ -1,0 +1,17 @@
+{
+  "name": "delicauto-shop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Webshop Auto Otpad Delić (delicauto.com) — povezan API-jem s aplikacijom za otpad",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/smoke.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {},
+  "optionalDependencies": {
+    "better-sqlite3": "^11.3.0",
+    "sharp": "^0.33.5"
+  }
+}
