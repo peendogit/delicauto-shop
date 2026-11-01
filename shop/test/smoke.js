@@ -112,7 +112,7 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
     const id1 = JSON.parse((await get('/api/dijelovi?ids=1,2,3')).text);
     ok(id1.length === 3, 'API za korpu vraća 3 dijela');
     r = await get(id1.find(x => x.id === 1).url);
-    ok(r.status === 200 && r.text.includes('application/ld+json') && r.text.includes('"price":"85"') && !r.text.includes('Dodaj u korpu') && r.text.includes('wa.me/38766027888?text=') && r.text.includes('viber://chat?number=%2B38766027888') && r.text.includes('tel:+38766027888') && r.text.includes('Interesuje me cijena') && r.text.includes('&amp;draft=') && !r.text.includes('data-copy='), 'detalj: schema, cijena, Pozovi/Viber/WhatsApp s tekstom upita');
+    ok(r.status === 200 && r.text.includes('application/ld+json') && r.text.includes('"price":"85"') && !r.text.includes('Dodaj u korpu') && r.text.includes('wa.me/38766027888?text=') && r.text.includes('viber://chat?number=%2B38766027888') && r.text.includes('tel:+38766027888') && r.text.includes('Interesuje%20me%20cijena') && r.text.includes('&amp;draft=') && !r.text.includes('data-copy='), 'detalj: schema, cijena, Pozovi/Viber/WhatsApp s tekstom upita');
     r = await get(id1.find(x => x.id === 2).url);
     ok(r.text.includes('Cijena na upit') && !r.text.includes('Dodaj u korpu'), 'detalj bez cijene: upit, bez korpe');
     r = await get('/dio/1'); ok(r.status === 200 || r.status === 301, 'dio/1 preusmjeren na kanonski URL');
