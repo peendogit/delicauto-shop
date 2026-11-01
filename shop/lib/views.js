@@ -51,7 +51,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <link rel="icon" href="/static/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=14">
+<link rel="stylesheet" href="/static/style.css?v=15">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -66,7 +66,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
 </header>
 <main class="wrap">${body}</main>
 <footer class="foot"><div class="wrap foot-in">
-  <div><img class="foot-logo" src="/static/logo.png" alt="Delić" width="158" height="59" loading="lazy"><br><b>${esc(cfg.name)}</b><br>${esc(cfg.city)}, Bosna i Hercegovina${contact ? '<br>' + contact : ''}</div>
+  <div><img class="foot-logo" src="/static/logo.png" alt="Delić" width="158" height="59" loading="lazy"><br><b>${esc(cfg.name)}</b><br>${cfg.address ? esc(cfg.address) + '<br>' : ''}${esc(cfg.city)}, Bosna i Hercegovina${contact ? '<br>' + contact : ''}</div>
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
@@ -184,7 +184,7 @@ function home({ makes, latest, total, facets, f }) {
   <a class="btn" href="/kontakt">Pošalji upit</a></section>`;
   const jsonld = {
     '@context': 'https://schema.org', '@type': 'AutoPartsStore', name: cfg.name, url: cfg.siteUrl,
-    address: { '@type': 'PostalAddress', addressLocality: cfg.city, addressCountry: 'BA' },
+    address: { '@type': 'PostalAddress', ...(cfg.address ? { streetAddress: cfg.address } : {}), addressLocality: cfg.city, addressCountry: 'BA' },
     ...(cfg.phone ? { telephone: cfg.phoneTel } : {}),
   };
   return layout({
@@ -437,7 +437,7 @@ function contact() {
     <p class="form-msg" role="status"></p>
   </form>
   <div class="box"><h2>${esc(cfg.name)}</h2>
-    <p>${esc(cfg.city)}, Bosna i Hercegovina</p>
+    <p>${cfg.address ? esc(cfg.address) + '<br>' : ''}${esc(cfg.city)}, Bosna i Hercegovina</p>
     ${phone ? `<p><a class="btn ghost" href="tel:${esc(phone)}">${esc(cfg.phone)}</a></p>` : ''}
     ${cfg.viber ? `<p><a class="btn ghost" href="viber://chat?number=${esc(encodeURIComponent(cfg.viber))}">Viber</a></p>` : ''}
     ${cfg.email ? `<p><a href="mailto:${esc(cfg.email)}">${esc(cfg.email)}</a></p>` : ''}
