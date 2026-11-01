@@ -39,6 +39,8 @@ module.exports = {
   viber: (e.SHOP_VIBER || '+38766027888').replace(/[^\d+]/g, ''),
   waNumber: (e.SHOP_WHATSAPP || e.SHOP_VIBER || '+38766027888').replace(/\D/g, ''),
   email: (e.SHOP_EMAIL || '').trim(),
+  address: (e.SHOP_ADDRESS || '').trim(),
+  mapQuery: (e.SHOP_MAP_QUERY || '').trim(),
   adminUser: e.ADMIN_USER || 'admin',
   adminPass: e.ADMIN_PASS || '',
   tgToken: e.TELEGRAM_BOT_TOKEN || '',
