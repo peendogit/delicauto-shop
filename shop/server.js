@@ -70,7 +70,7 @@ const makesList = () => cached('makes', () => db.prepare(
   `SELECT make, COUNT(*) AS n FROM parts WHERE make IS NOT NULL AND make <> '' GROUP BY make ORDER BY n DESC`).all());
 const yardForF = f => {
   if (f.marka && f.model) return yardFor(f.marka, f.model);
-  if (f.vm) { const m = matchCombos(f.vm); return m.slice(0, 5).flatMap(c => yardFor(c.make, c.model)); }
+  if (f.vm) { const m = matchCombos(f.vm); const seen = new Set(); return m.slice(0, 6).filter(c => !seen.has(c.make + c.model) && seen.add(c.make + c.model)).flatMap(c => yardFor(c.make, c.model)); }
   return [];
 };
 const yardFor = (marka, model) => (marka && model)
@@ -91,34 +91,37 @@ const distinctOf = (col, numeric) => cached('d:' + col, () => db.prepare(
 // ---- vozilo kucanjem: "A5" -> Audi A5 8T, Audi A5 8F ... ----
 const foldS = x => String(x || '').toLowerCase().replace(/đ/g, 'dj').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const compactS = x => foldS(x).replace(/[^a-z0-9]/g, '');
+const YR = /\((\d{2})\s*-\s*(\d{2})\)/;
 const combos = () => cached('combos', () => {
-  // godišta modela: najraniji početak i najkasniji kraj iz oznaka "(07-11)" na vozilima
-  const yrs = new Map();
-  for (const v of db.prepare("SELECT make, model, vehicle FROM parts WHERE make <> '' AND model <> '' GROUP BY make, model, vehicle").all()) {
-    const m = /\((\d{2})\s*-\s*(\d{2})\)/.exec(v.vehicle || ''); if (!m) continue;
-    const k = v.make + '|' + v.model, y = yrs.get(k) || { a: 99, b: -1 };
-    const full = x => (Number(x) < 70 ? 2000 : 1900) + Number(x);
-    if (full(m[1]) < (y.a === 99 ? 9999 : full(y.a))) y.a = m[1];
-    if (full(m[2]) > (y.b === -1 ? 0 : full(y.b))) y.b = m[2];
-    yrs.set(k, y);
+  // svaka generacija/restajling posebno: "Audi A5 8T (07-11)" i "Audi A5 8T (11-16)"
+  const map = new Map();
+  for (const r of db.prepare("SELECT make, model, vehicle, COUNT(*) AS n FROM parts WHERE make <> '' AND model <> '' GROUP BY make, model, vehicle").all()) {
+    const m = YR.exec(r.vehicle || ''), yrs = m ? `${m[1]}-${m[2]}` : '';
+    const k = `${r.make}|${r.model}|${yrs}`, e = map.get(k);
+    if (e) e.n += r.n; else {
+      const base = `${r.make} ${r.model}`;
+      map.set(k, { make: r.make, model: r.model, yrs, n: r.n, base, label: yrs ? `${base} (${yrs})` : base, f: foldS(base), c: compactS(base), words: foldS(base).split(/[^a-z0-9]+/).filter(Boolean) });
+    }
   }
-  return db.prepare("SELECT make, model, COUNT(*) AS n FROM parts WHERE make <> '' AND model <> '' GROUP BY make, model").all()
-  .map(r => { const y = yrs.get(r.make + '|' + r.model), label = `${r.make} ${r.model}`; return { make: r.make, model: r.model, n: r.n, label, show: y ? `${label} (${y.a}-${y.b})` : label, f: foldS(label), c: compactS(label), words: foldS(label).split(/[^a-z0-9]+/).filter(Boolean) }; });
+  return [...map.values()];
 });
 function matchCombos(text) {
-  text = String(text || '').replace(/\s*\(\s*\d{2}\s*-\s*\d{2}\s*\)\s*$/, '');
+  text = String(text || '');
+  const ym = /\(\s*(\d{2})\s*-\s*(\d{2})\s*\)\s*$/.exec(text), yrs = ym ? `${ym[1]}-${ym[2]}` : '';
+  if (ym) text = text.slice(0, ym.index);
   const toks = foldS(text).split(/\s+/).filter(Boolean).slice(0, 5);
   if (!toks.length) return [];
-  const exact = combos().filter(c => c.f === foldS(text).trim());
-  if (exact.length) return exact;
-  const hit = combos().filter(c => toks.every(t => c.words.some(w => w.startsWith(t.replace(/[^a-z0-9]/g, ''))) || (compactS(t).length >= 3 && c.c.includes(compactS(t)))));
+  const all = combos().filter(c => !yrs || c.yrs === yrs);
+  const exact = all.filter(c => c.f === foldS(text).trim());
+  if (exact.length) return exact.sort((a, b) => a.yrs.localeCompare(b.yrs));
+  const hit = all.filter(c => toks.every(t => c.words.some(w => w.startsWith(t.replace(/[^a-z0-9]/g, ''))) || (compactS(t).length >= 3 && c.c.includes(compactS(t)))));
   const t0 = toks[0];
-  return hit.sort((a, b) => ((b.f.startsWith(t0) ? 1 : 0) - (a.f.startsWith(t0) ? 1 : 0)) || ((b.words.includes(t0) ? 1 : 0) - (a.words.includes(t0) ? 1 : 0)) || b.n - a.n);
+  return hit.sort((a, b) => ((b.f.startsWith(t0) ? 1 : 0) - (a.f.startsWith(t0) ? 1 : 0)) || ((b.words.includes(t0) ? 1 : 0) - (a.words.includes(t0) ? 1 : 0)) || (a.base === b.base ? a.yrs.localeCompare(b.yrs) : b.n - a.n));
 }
 app.get('/api/vozila', (req, res) => {
   if (limited(req, res, 900)) return;
   res.setHeader('Cache-Control', 'no-store');
-  res.json(matchCombos(clean(req.query.q, 60)).slice(0, 30).map(c => c.show));
+  res.json(matchCombos(clean(req.query.q, 60)).slice(0, 30).map(c => c.label));
 });
 function facets(make, model) {
   return {
@@ -156,7 +159,10 @@ function buildList(f) {
   if (f.vm) {
     const m = matchCombos(f.vm).slice(0, 80);
     if (!m.length) where.push('0 = 1');
-    else { where.push('(' + m.map(() => '(make = ? AND model = ?)').join(' OR ') + ')'); m.forEach(c => args.push(c.make, c.model)); }
+    else {
+      where.push('(' + m.map(c => c.yrs ? '(make = ? AND model = ? AND instr(vehicle, ?) > 0)' : "(make = ? AND model = ? AND instr(vehicle, '(') = 0)").join(' OR ') + ')');
+      m.forEach(c => { args.push(c.make, c.model); if (c.yrs) args.push(`(${c.yrs})`); });
+    }
   }
   if (f.gorivo) { where.push('fuel = ?'); args.push(f.gorivo); }
   if (f.strana) { where.push('side = ?'); args.push(f.strana); }
