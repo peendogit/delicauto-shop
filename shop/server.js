@@ -108,7 +108,11 @@ function buildList(f) {
   if (f.model) { where.push('model = ?'); args.push(f.model); }
   if (f.vozilo) { where.push("(vehicle = ? OR vehicle LIKE ? ESCAPE '\\')"); args.push(f.vozilo, f.vozilo.replace(/[\\%_]/g, '\\$&') + ' · %'); }
   if (f.grupa) { where.push(f.grupa === 'Ostalo' ? `(grp IS NULL OR grp = '' OR grp = 'Ostalo')` : 'grp = ?'); if (f.grupa !== 'Ostalo') args.push(f.grupa); }
-  if (f.tip) { where.push(f.tip === 'Ostalo' ? `(type IS NULL OR type = '' OR type = 'Ostalo')` : 'type = ?'); if (f.tip !== 'Ostalo') args.push(f.tip); }
+  if (f.tip) {
+    if (f.tip === 'Ostalo') where.push(`(type IS NULL OR type = '' OR type = 'Ostalo')`);
+    else if (db.prepare('SELECT 1 FROM parts WHERE type = ? COLLATE NOCASE LIMIT 1').get(f.tip)) { where.push('type = ? COLLATE NOCASE'); args.push(f.tip); }
+    else { where.push("type LIKE ? ESCAPE '\\'"); args.push('%' + f.tip.replace(/[\\%_]/g, '\\$&') + '%'); }
+  }
   if (f.gorivo) { where.push('fuel = ?'); args.push(f.gorivo); }
   if (f.strana) { where.push('side = ?'); args.push(f.strana); }
   if (f.ccm) { where.push('displacement = ?'); args.push(f.ccm); }
@@ -448,19 +452,19 @@ const fmtTs = t => new Date(t).toLocaleString('bs-BA', { timeZone: 'Europe/Saraj
 const rimFacets = () => cached('rimf', () => {
   const d = (col, num) => db.prepare(`SELECT DISTINCT ${col} AS v FROM rims WHERE ${col} IS NOT NULL AND ${col} <> ''`).all().map(r => String(r.v))
     .sort(num ? (a, b) => parseFloat(a) - parseFloat(b) || alpha(a, b) : alpha);
-  return { types: d('type'), diameters: d('diameter', true), widths: d('width', true), bolts: d('bolts'), makes: d('make') };
+  return { types: d('type'), diameters: d('diameter', true), widths: d('width', true), bolts: d('bolts'), centers: d('center', true), makes: d('make') };
 });
 const rimRow = r => ({ ...r, price: r.price || null });
 app.get('/felne', (req, res) => {
   const q = req.query;
-  const f = { tip: clean(q.tip, 60), promjer: clean(q.promjer, 10), sirina: clean(q.sirina, 10), raspored: clean(q.raspored, 20), marka: clean(q.marka, 60), cijena: q.cijena ? '1' : '' };
+  const f = { tip: clean(q.tip, 60), promjer: clean(q.promjer, 10), sirina: clean(q.sirina, 10), raspored: clean(q.raspored, 20), marka: clean(q.marka, 60), centar: clean(q.centar, 10).replace(',', '.') };
   const where = [], args = [];
   if (f.tip) { where.push('type = ?'); args.push(f.tip); }
   if (f.promjer) { where.push('diameter = ?'); args.push(f.promjer); }
   if (f.sirina) { where.push('width = ?'); args.push(f.sirina); }
   if (f.raspored) { where.push('bolts = ?'); args.push(f.raspored); }
   if (f.marka) { where.push('make = ?'); args.push(f.marka); }
-  if (f.cijena) where.push('price > 0');
+  if (f.centar) { where.push("center LIKE ? ESCAPE '\\'"); args.push(f.centar.replace(/[\\%_]/g, '\\$&') + '%'); }
   const rows = db.prepare(`SELECT * FROM rims ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY CAST(diameter AS REAL), id LIMIT 300`).all(...args).map(rimRow);
   res.html(V.rimsList({ rows, f, fx: rimFacets() }));
 });

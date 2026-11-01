@@ -54,7 +54,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=18">
+<link rel="stylesheet" href="/static/style.css?v=19">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -73,7 +73,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/felne">Felne</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=15" defer></script>
+<script src="/static/app.js?v=16" defer></script>
 </body></html>`;
 }
 
@@ -131,6 +131,8 @@ function searchForm(f, fx) {
   return `<form class="sf" method="get" action="/dijelovi">
   ${f.q ? `<input type="hidden" name="q" value="${esc(f.q)}">` : ''}
   <fieldset class="fs"><legend><i>1</i> Pretraga po broju</legend><div class="sf-grid">
+    <label class="f"><span>Tip dijela</span><input name="tip" value="${esc(f.tip && nice(f.tip))}" list="dl-tip" placeholder="kucaj: npr. farovi, branik…" autocomplete="off"></label>
+    <datalist id="dl-tip">${(fx.types || []).map(t => `<option value="${esc(nice(t))}">`).join('')}</datalist>
     ${inp('katbr', 'Kataloški broj', f.katbr, 'npr. 5G1941005')}
     ${inp('sifra', 'Interna šifra', f.sifra)}
   </div></fieldset>
@@ -143,7 +145,6 @@ function searchForm(f, fx) {
   </div></fieldset>
   <fieldset class="fs"><legend><i>3</i> Dio</legend><div class="sf-grid">
     ${sel('grupa', 'Grupa', fx.groups, f.grupa)}
-    ${sel('tip', 'Tip dijela', fx.types, f.tip, { fmt: nice })}
     ${sel('strana', 'Strana', fx.sides, f.strana)}
     <label class="f"><span>Cijena</span><select name="cijena"><option value="">Sve</option><option value="1"${f.cijena ? ' selected' : ''}>Samo sa cijenom</option></select></label>
   </div></fieldset>
@@ -419,7 +420,8 @@ function rimsList({ rows, f, fx }) {
       ${sl('sirina', 'Širina (J)', fx.widths, f.sirina)}
       ${sl('raspored', 'Raspored šarafa', fx.bolts, f.raspored)}
       ${sl('marka', 'Marka vozila', fx.makes, f.marka)}
-      <label class="f"><span>Cijena</span><select name="cijena"><option value="">Sve</option><option value="1"${f.cijena ? ' selected' : ''}>Samo sa cijenom</option></select></label>
+      <label class="f"><span>Centralna rupa (mm)</span><input name="centar" value="${esc(f.centar)}" list="dl-cb" inputmode="decimal" placeholder="kucaj: npr. 57.1" autocomplete="off"></label>
+      <datalist id="dl-cb">${(fx.centers || []).map(c => `<option value="${esc(c)}">`).join('')}</datalist>
     </div>
     <div class="sf-actions"><button class="btn" type="submit">Traži</button><a class="reset" href="/felne">Poništi sve</a></div>
   </form>
