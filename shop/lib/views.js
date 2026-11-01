@@ -70,7 +70,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=12" defer></script>
+<script src="/static/app.js?v=13" defer></script>
 </body></html>`;
 }
 
@@ -322,17 +322,6 @@ function detail(p) {
     return rows ? `<table class="specs"><caption>${title}</caption><tbody>${rows}</tbody></table>` : '';
   }).join('');
   const phone = cfg.phoneTel;
-  const inquiry = `
-<form class="box inq" id="upit" data-ajax action="/api/upit" method="post">
-  <h2>${p.price ? 'Imaš pitanje o dijelu?' : 'Pošalji upit za cijenu'}</h2>
-  <input type="hidden" name="partId" value="${p.id}">
-  <input class="hp" type="text" name="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-  <label class="f"><span>Ime</span><input name="name" required maxlength="80" autocomplete="name"></label>
-  <label class="f"><span>Telefon</span><input name="phone" type="tel" required maxlength="40" autocomplete="tel"></label>
-  <label class="f"><span>Poruka (nije obavezno)</span><textarea name="message" rows="3" maxlength="1000" placeholder="npr. godište vozila, broj šasije…"></textarea></label>
-  <button type="submit" class="btn">${p.price ? 'Pošalji upit' : 'Pošalji upit za cijenu'}</button>
-  <p class="form-msg" role="status"></p>
-</form>`;
   const body = `
 <nav class="crumbs"><a href="/">Početna</a> › <a href="/katalog">Katalog</a>${p.make ? ` › <a href="/katalog?marka=${encodeURIComponent(p.make)}">${esc(p.make)}</a>` : ''}${p.make && p.model ? ` › <a href="/katalog?marka=${encodeURIComponent(p.make)}&model=${encodeURIComponent(p.model)}">${esc(p.model)}</a>` : ''}</nav>
 <div class="spec-strip">${[['Šifra', p.internal], ['Kat. broj', p.catalog], ['Vozilo', [p.make, p.model].filter(Boolean).join(' ')], ['Strana', p.side], ['Motor', p.engineCode]].filter(x => x[1]).map(([l, v]) => `<div><small>${l}</small><b>${esc(v)}</b></div>`).join('')}</div>
@@ -352,7 +341,6 @@ function detail(p) {
       ${contactBtns(p, '')}
     </div>
     ${p.note ? `<p class="note">${esc(p.note)}</p>` : ''}
-    ${inquiry}
   </section>
 </div>
 ${specs ? `<section class="sheet"><h2>Specifikacija dijela</h2><div class="sheet-grid">${specs}</div></section>` : ''}
