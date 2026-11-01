@@ -55,6 +55,15 @@
       sel.innerHTML = '<option value="">' + esc(ph) + '</option>' + items.map(function (x) { return '<option value="' + esc(x) + '">' + esc(x) + '</option>'; }).join('');
       sel.disabled = off;
     }
+    // model (kucanjem) i marka ne smiju biti u sukobu: izbor modela postavlja marku, a druga marka briše model
+    var vmIn = form.querySelector('[name=vm]');
+    if (vmIn && m) {
+      vmIn.addEventListener('ac-pick', function (e) {
+        var label = String(e.detail || '');
+        Array.prototype.forEach.call(m.options, function (o) { if (o.value && label.indexOf(o.value + ' ') === 0) m.value = o.value; });
+      });
+      m.addEventListener('change', function () { if (m.value && vmIn.value && vmIn.value.indexOf(m.value + ' ') !== 0) vmIn.value = ''; });
+    }
     if (m && !md) m.addEventListener('change', function () { form.querySelectorAll('input[type=hidden][name=model],input[type=hidden][name=vozilo]').forEach(function (h) { h.remove(); }); });
     if (m && md && v) {
       m.addEventListener('change', function () {
@@ -319,7 +328,8 @@
         tmr = setTimeout(function () {
           if (ctl) ctl.abort();
           ctl = window.AbortController ? new AbortController() : null;
-          fetch(remote + '?q=' + encodeURIComponent(inp.value.trim()), ctl ? { signal: ctl.signal } : {})
+          var mk = inp.form && inp.form.querySelector('select[name=marka]');
+          fetch(remote + '?q=' + encodeURIComponent(inp.value.trim()) + (mk && mk.value ? '&marka=' + encodeURIComponent(mk.value) : ''), ctl ? { signal: ctl.signal } : {})
             .then(function (r) { return r.json(); }).then(function (a) { if (document.activeElement === inp) show(a); }).catch(function () {});
         }, 120);
         return;
@@ -336,6 +346,7 @@
         li.addEventListener('mousedown', function (e) { e.preventDefault(); });
         li.addEventListener('click', function () {
           inp.value = o; ul.hidden = true;
+          inp.dispatchEvent(new CustomEvent('ac-pick', { bubbles: true, detail: o }));
           inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true }));
         });
         ul.appendChild(li);

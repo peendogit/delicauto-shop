@@ -121,7 +121,8 @@ function matchCombos(text) {
 app.get('/api/vozila', (req, res) => {
   if (limited(req, res, 900)) return;
   res.setHeader('Cache-Control', 'no-store');
-  res.json(matchCombos(clean(req.query.q, 60)).slice(0, 30).map(c => c.label));
+  const mk = clean(req.query.marka, 60);
+  res.json(matchCombos(clean(req.query.q, 60)).filter(c => !mk || c.make === mk).slice(0, 30).map(c => c.label));
 });
 function facets(make, model) {
   return {
@@ -157,7 +158,7 @@ function buildList(f) {
     else { where.push("type LIKE ? ESCAPE '\\'"); args.push('%' + f.tip.replace(/[\\%_]/g, '\\$&') + '%'); }
   }
   if (f.vm) {
-    const m = matchCombos(f.vm).slice(0, 80);
+    const m = matchCombos(f.vm).filter(c => !f.marka || c.make === f.marka).slice(0, 80);
     if (!m.length) where.push('0 = 1');
     else {
       where.push('(' + m.map(c => c.yrs ? '(make = ? AND model = ? AND instr(vehicle, ?) > 0)' : "(make = ? AND model = ? AND instr(vehicle, '(') = 0)").join(' OR ') + ')');
