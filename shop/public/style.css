@@ -354,3 +354,8 @@ details.gdet>summary{font-weight:700;font-size:1.05rem;padding:10px 0;cursor:poi
 .otimgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.otimgs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:5px;border:1px solid var(--line)}
 
 .hours ul{list-style:none;margin:.3rem 0 0;padding:0}.hours li{padding:2px 0}
+@media(max-width:600px){
+  .mainnav .wrap{overflow-x:visible;justify-content:space-between;gap:0;padding-left:4px;padding-right:4px}
+  .mainnav a{flex:0 1 auto;padding:11px 7px;font-size:.8rem;white-space:nowrap;text-align:center}
+}
+@media(max-width:360px){.mainnav a{font-size:.74rem;padding:11px 5px}}
