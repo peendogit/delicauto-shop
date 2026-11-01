@@ -26,7 +26,7 @@ adb.exec("UPDATE dijelovi SET grupa = 'Elektrika' WHERE id IN (1, 2); UPDATE dij
 adb.exec("UPDATE dijelovi SET kod_motora = '306DT', pogon = '4x4', mjenjac = 'Automatik', broj_brzina = '8', tip_karoserije = 'SUV', kod_mjenjaca = 'ZF8HP' WHERE id = 1; UPDATE dijelovi SET strana = 'Lijeva', kod_motora = 'CLHA' WHERE id = 3");
 ins.run('SOLD', 'ZRCALO', 'Audi', 'A4 B8', '2.0 TDI', '8K0857409', 'Dizel', null, null, 40, 0, '', 5);
 
-const shopApi = require('../../AutoDelicGume-dodatak/shop-api.cjs');
+const shopApi = require('../../api-primjer-za-programera/shop-api.cjs');
 const mw = [];
 const fakeApp = { use: (p, fn) => mw.push([p, fn]) };
 shopApi(fakeApp, adb);

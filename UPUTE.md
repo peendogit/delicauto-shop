@@ -2,7 +2,7 @@
 
 Dvije cjeline u ZIP-u:
 
-- `AutoDelicGume-dodatak/` — mali API modul za TVOJU aplikaciju (ne mijenja ništa postojeće)
+- `api-primjer-za-programera/` — mali API modul za TVOJU aplikaciju (ne mijenja ništa postojeće)
 - `shop/` — sam webshop (zasebna aplikacija, port 3010)
 
 Kako radi: webshop ima katalog kao TecDoc — na početnoj biraš marku → model → vozilo/motor (ili upišeš kataloški broj), pa grupu i tip dijela (`/katalog`, lijevo stablo grupa u rezultatima). Podaci za to dolaze iz polja marka, model, vozilo, grupa i tip dijela. Pretraga ima sva polja kao u tvojoj aplikaciji: brza pretraga, kataloški broj, tip dijela, interna šifra, grupa, marka, model, vozilo, kubikaža, snaga, kod mjenjača, kod motora, mjenjač, broj brzina, tip karoserije, pogon, gorivo, strana i „samo sa cijenom“. Webshop svakih 20 s pita aplikaciju šta je novo. Dodaš dio → pojavi se. Prodaš dio (`Prodaj dio`) ili količina padne na 0 → nestane. Kad kupac naruči, dio se **rezerviše u aplikaciji** (niko drugi ga ne može naručiti), a ti dobiješ Telegram poruku i narudžbu u `/admin`. Cijena u aplikaciji postoji → shop je prikazuje i dio se može naručiti; nema cijene → „Pošalji upit“.
