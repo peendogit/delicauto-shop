@@ -13,7 +13,7 @@ const nice = s => {
 };
 
 const partTitle = p => [nice(p.type), p.make, p.model].filter(Boolean).join(' ') || ('Dio ' + p.id);
-const partUrl = p => `/dio/${p.id}-${slugify(partTitle(p)) || 'dio'}`;
+const partUrl = p => `/dio/${slugify([p.catalog, partTitle(p)].filter(Boolean).join(' ')) || 'dio'}-${p.id}`;
 const imgUrl = (file, w) => `/img/${w}/${String(file).split('/').map(encodeURIComponent).join('/')}`;
 const money = v => (v === null || v === undefined) ? '' :
   (Number.isInteger(v) ? String(v) : v.toFixed(2).replace('.', ',')) + ' KM';
@@ -49,9 +49,12 @@ ${noindex ? '<meta name="robots" content="noindex,nofollow">' : ''}
 ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">` : ''}
 <meta name="theme-color" content="#0f2a47">
 <link rel="icon" href="/static/favicon.png" type="image/png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=15">
+<link rel="stylesheet" href="/static/style.css?v=18">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -62,15 +65,15 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
     <button type="submit" aria-label="Traži">Traži</button>
   </form>
 </div>
-<nav class="mainnav" aria-label="Glavni meni"><div class="wrap"><a href="/katalog">Katalog po vozilu</a><a href="/otkup" class="nav-hl">Otkup vozila</a><a href="/kontakt">Kontakt</a></div></nav>
+<nav class="mainnav" aria-label="Glavni meni"><div class="wrap"><a href="/katalog">Katalog po vozilu</a><a href="/felne">Felne</a><a href="/otkup" class="nav-hl">Otkup vozila</a><a href="/kontakt">Kontakt</a></div></nav>
 </header>
 <main class="wrap">${body}</main>
 <footer class="foot"><div class="wrap foot-in">
   <div><img class="foot-logo" src="/static/logo.png" alt="Delić" width="158" height="59" loading="lazy"><br><b>${esc(cfg.name)}</b><br>${cfg.address ? esc(cfg.address) + '<br>' : ''}${esc(cfg.city)}, Bosna i Hercegovina${contact ? '<br>' + contact : ''}</div>
-  <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
+  <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/felne">Felne</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=13" defer></script>
+<script src="/static/app.js?v=15" defer></script>
 </body></html>`;
 }
 
@@ -84,17 +87,34 @@ function card(p) {
     : '<div class="noimg">Nema slike</div>'}</div>
   <div class="card-b"><h3>${esc(title)}</h3>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}
   <div class="card-f">${p.price ? `<span class="price">${esc(money(p.price))}</span>` : '<span class="ask">Pošalji upit</span>'}
-  ${p.internal ? `<span class="code">${esc(p.internal)}</span>` : ''}</div></div></a></article>`;
+  ${p.internal ? `<span class="code">${esc(p.internal)}</span>` : ''}</div>${warranty('sm')}</div></a></article>`;
 }
 
+// mala ikona + tekst garancije
+const warranty = (cls = '') => `<span class="warr ${cls}"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.600-8-6-8-11V5z" fill="#1b7f3a"/><path d="M8 12l3 3 5-6" fill="none" stroke="#fff" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"/></svg>Garancija 7 dana</span>`;
+
 // dugmad za kontakt uz dio: Pozovi, Viber, WhatsApp
-function contactBtns(p, cls = 'sm') {
-  const code = p.internal ? `, šifra ${p.internal}` : '';
-  const msg = `Zdravo, vidio sam ovaj dio na vašem sajtu: ${partTitle(p)}${code}. Interesuje me cijena.\n${cfg.siteUrl}${partUrl(p)}`;
+function contactBtnsMsg(msg, cls = 'sm') {
   const wa = `https://wa.me/${cfg.waNumber}?text=${encodeURIComponent(msg)}`;
   return `<span class="cbtns"><a class="btn ${cls} call" href="tel:${esc(cfg.phoneTel)}">Pozovi</a>`
     + `<a class="btn ${cls} vb" href="viber://chat?number=${esc(encodeURIComponent(cfg.viber))}" data-copy="${esc(msg)}" rel="nofollow">Viber</a>`
     + `<a class="btn ${cls} wa" href="${esc(wa)}" target="_blank" rel="noopener nofollow">WhatsApp</a></span>`;
+}
+function contactBtns(p, cls = 'sm') {
+  const code = p.internal ? `, šifra ${p.internal}` : '';
+  return contactBtnsMsg(`Zdravo, vidio sam ovaj dio na vašem sajtu: ${partTitle(p)}${code}. Interesuje me cijena.\n${cfg.siteUrl}${partUrl(p)}`, cls);
+}
+
+// obavijest: vozilo je na placu (cijelo, nije rastavljeno) -> možda imamo dio koji još nije u bazi
+function yardNotice(list) {
+  if (!list || !list.length) return '';
+  const lines = list.slice(0, 5).map(v => `${esc(v.make)} ${esc(v.model)}${v.year ? ', ' + v.year : ''}${[v.fuel, v.engine_code && 'motor ' + v.engine_code].filter(Boolean).length ? ' (' + esc([v.fuel, v.engine_code && 'motor ' + v.engine_code].filter(Boolean).join(', ')) + ')' : ''}`);
+  const first = list[0];
+  const msg = `Zdravo, vidio sam da imate na placu vozilo ${first.make} ${first.model}${first.year ? ' ' + first.year : ''}. Tražim dio koji nisam našao na sajtu.`;
+  return `<aside class="yard"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M5 11l1.600-4.200A2 2 0 018.500 5.500h7a2 2 0 011.900 1.300L19 11h1a1 1 0 011 1v4h-2a2 2 0 01-4 0h-6a2 2 0 01-4 0H3v-4a1 1 0 011-1zm2.200 0h9.600l-1.200-3h-7.200z" fill="currentColor"/></svg>
+  <div><b>Imamo ovo vozilo na placu</b>
+  <ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul>
+  <p>Pozovite nas — možda imamo dio koji još nije u bazi.</p>${contactBtnsMsg(msg)}</div></aside>`;
 }
 
 // ---- polja za pretragu (ista kao u aplikaciji za otpad) ----
@@ -150,7 +170,7 @@ function partRow(p, i, start = 0) {
   <td class="c-no">${start + i + 1}</td>
   <td class="c-img"><a href="${url}" tabindex="-1">${imgs[0] ? `<img src="${imgUrl(imgs[0], 240)}" loading="lazy" alt="" width="240" height="180">` : '<span class="noimg">—</span>'}</a></td>
   <td data-l="Šifra" class="mono">${esc(p.internal || '—')}</td>
-  <td data-l="Dio" class="c-name"><a href="${url}">${esc(nice(p.type) || 'Dio')}</a>${p.group ? `<small>${esc(p.group)}</small>` : ''}</td>
+  <td data-l="Dio" class="c-name"><a href="${url}">${esc(nice(p.type) || 'Dio')}</a>${p.group ? `<small>${esc(p.group)}</small>` : ''}${warranty('sm')}</td>
   <td data-l="Vozilo" class="c-veh"><b>${esc(veh || '—')}</b>${veh2 ? `<small>${esc(veh2)}</small>` : ''}</td>
   <td data-l="Kat. broj" class="mono${p.catalog ? '' : ' e'}">${esc(p.catalog || '—')}</td>
   <td data-l="Strana" class="${p.side ? '' : 'e'}">${esc(p.side || '—')}</td>
@@ -205,7 +225,7 @@ function treeHtml(tree, f, mk) {
   }).join('')}</div>`;
 }
 
-function resultsHtml({ rows, total, page, pages, f, heading, link, pager }) {
+function resultsHtml({ rows, total, page, pages, f, heading, link, pager, yard }) {
   return `<div class="results" id="rez">
   <h1 class="pg-h">${esc(heading)}</h1>
   <div class="toolbar"><span class="count">${total.toLocaleString('de-DE')} ${total === 1 ? 'dio' : 'dijelova'}</span>
@@ -213,11 +233,12 @@ function resultsHtml({ rows, total, page, pages, f, heading, link, pager }) {
     <span class="vt">${link({ prikaz: 'lista' }, 'Tabela', f.prikaz === 'lista')}${link({ prikaz: 'mreza' }, 'Mreža', f.prikaz === 'mreza')}</span></span></div>
   ${rows.length ? (f.prikaz === 'mreza' ? `<div class="grid g3">${rows.map(card).join('')}</div>` : partsTable(rows, (page - 1) * cfg.pageSize)) + pager :
     `<div class="empty"><p>Nema rezultata za ovaj izbor.</p><p><a class="btn" href="/kontakt">Pošalji upit za dio</a></p></div>`}
+  ${yardNotice(yard)}
 </div>`;
 }
 
 // samo blok rezultata (za pretragu "uživo")
-function listFrag({ rows, total, page, pages, f, baseQuery }) {
+function listFrag({ rows, total, page, pages, f, baseQuery, yard }) {
   const pageLink = n => '/dijelovi?' + baseQuery({ page: n });
   const pager = pages > 1 ? `<nav class="pager" aria-label="Stranice">
     ${page > 1 ? `<a href="${pageLink(page - 1)}" rel="prev">← Prethodna</a>` : '<span></span>'}
@@ -227,10 +248,10 @@ function listFrag({ rows, total, page, pages, f, baseQuery }) {
   const what = f.tip ? nice(f.tip) : f.grupa || '';
   const heading = [what, vehicle].filter(Boolean).join(' — ') || (f.q ? `„${f.q}“` : 'Svi dijelovi');
   const link = (extra, text, on) => `<a href="/dijelovi?${baseQuery({ ...extra, page: 1 })}" class="${on ? 'on' : ''}">${text}</a>`;
-  return resultsHtml({ rows, total, page, pages, f, heading, link, pager });
+  return resultsHtml({ rows, total, page, pages, f, heading, link, pager, yard });
 }
 
-function list({ rows, total, page, pages, f, facets, tree, baseQuery }) {
+function list({ rows, total, page, pages, f, facets, tree, baseQuery, yard }) {
   const pageLink = n => '/dijelovi?' + baseQuery({ page: n });
   const pager = pages > 1 ? `<nav class="pager" aria-label="Stranice">
     ${page > 1 ? `<a href="${pageLink(page - 1)}" rel="prev">← Prethodna</a>` : '<span></span>'}
@@ -247,7 +268,7 @@ function list({ rows, total, page, pages, f, facets, tree, baseQuery }) {
   if (f.grupa) crumbs.push(`<a href="/dijelovi?${baseQuery({ tip: '', page: 1 })}">${esc(f.grupa)}</a>`);
   if (f.tip) crumbs.push(`<span>${esc(nice(f.tip))}</span>`);
   const link = (extra, text, on) => `<a href="/dijelovi?${baseQuery({ ...extra, page: 1 })}" class="${on ? 'on' : ''}">${text}</a>`;
-  const resultsBlock = resultsHtml({ rows, total, page, pages, f, heading, link, pager });
+  const resultsBlock = resultsHtml({ rows, total, page, pages, f, heading, link, pager, yard });
   const body = `
 <nav class="crumbs">${crumbs.join(' › ')}</nav>
 <details class="panel mfold"${active ? '' : ' open'}><summary>Pretraga — sva polja${active ? ` <em>${active} aktivno</em>` : ''}</summary>${searchForm(f, facets)}</details>
@@ -269,7 +290,7 @@ ${resultsBlock}
 }
 
 // TecDoc-style navigacija: marka -> model -> vozilo i grupe dijelova
-function catalog({ marka, model, makes, models, variants, tree, total }) {
+function catalog({ marka, model, makes, models, variants, tree, total, yard }) {
   const e = encodeURIComponent;
   const mk = extra => new URLSearchParams(Object.entries({ marka, model, ...extra }).filter(([, v]) => v)).toString();
   const crumbs = [`<a href="/">Početna</a>`, marka ? `<a href="/katalog">Katalog</a>` : '<span>Katalog</span>'];
@@ -300,7 +321,8 @@ function catalog({ marka, model, makes, models, variants, tree, total }) {
           ${variants.map(v => `<tr><td><a href="/dijelovi?${mk({ vozilo: v.vehicle })}">${esc(v.vehicle || '(bez oznake)')}</a></td><td class="num">${v.n}</td></tr>`).join('')}
           </tbody></table></div>
         <div><h2>Grupe dijelova</h2>${treeHtml(tree, {}, mk)}</div>
-      </div>`;
+      </div>
+      ${yardNotice(yard)}`;
   }
   return layout({ title, desc, path: '/katalog' + (marka ? `?marka=${e(marka)}${model ? '&model=' + e(model) : ''}` : ''),
     body: `<nav class="crumbs">${crumbs.join(' › ')}</nav>${inner}` });
@@ -324,7 +346,7 @@ function detail(p) {
   const phone = cfg.phoneTel;
   const body = `
 <nav class="crumbs"><a href="/">Početna</a> › <a href="/katalog">Katalog</a>${p.make ? ` › <a href="/katalog?marka=${encodeURIComponent(p.make)}">${esc(p.make)}</a>` : ''}${p.make && p.model ? ` › <a href="/katalog?marka=${encodeURIComponent(p.make)}&model=${encodeURIComponent(p.model)}">${esc(p.model)}</a>` : ''}</nav>
-<div class="spec-strip">${[['Šifra', p.internal], ['Kat. broj', p.catalog], ['Vozilo', [p.make, p.model].filter(Boolean).join(' ')], ['Strana', p.side], ['Motor', p.engineCode]].filter(x => x[1]).map(([l, v]) => `<div><small>${l}</small><b>${esc(v)}</b></div>`).join('')}</div>
+<div class="spec-strip">${[['Kat. broj', p.catalog], ['Šifra', p.internal], ['Vozilo', [p.make, p.model].filter(Boolean).join(' ')], ['Strana', p.side], ['Motor', p.engineCode]].filter(x => x[1]).map(([l, v]) => `<div><small>${l}</small><b>${esc(v)}</b></div>`).join('')}</div>
 <div class="detail">
   <section class="gal">
     <div class="gal-main">${imgs[0]
@@ -334,9 +356,11 @@ function detail(p) {
   </section>
   <section class="info">
     <h1>${esc(title)}</h1>
+    ${p.catalog ? `<p class="katline">Kataloški broj: <b>${esc(p.catalog)}</b></p>` : ''}
     ${p.vehicle ? `<p class="sub">${esc(p.vehicle)}</p>` : ''}
     <div class="box buy">
       ${p.price ? `<div class="price big">${esc(money(p.price))}</div>` : `<div class="ask big">Cijena na upit</div>`}
+      <p>${warranty()}</p>
       <p class="muted">Pozovi ili nam piši — rado ćemo ti odgovoriti.</p>
       ${contactBtns(p, '')}
     </div>
@@ -351,14 +375,92 @@ ${mapSection('Gdje preuzeti ovaj dio', true)}`;
     ...(p.internal ? { sku: p.internal } : {}), ...(p.catalog ? { mpn: p.catalog } : {}),
     ...(p.make ? { brand: { '@type': 'Brand', name: p.make } } : {}),
     itemCondition: 'https://schema.org/UsedCondition',
+    warranty: { '@type': 'WarrantyPromise', durationOfWarranty: { '@type': 'QuantitativeValue', value: 7, unitCode: 'DAY' } },
     ...(p.price ? { offers: { '@type': 'Offer', priceCurrency: 'BAM', price: String(p.price), availability: 'https://schema.org/InStock',
       url: cfg.siteUrl + partUrl(p), seller: { '@type': 'Organization', name: cfg.name } } } : {}),
   };
   return layout({
-    title: `${title}${p.catalog ? ' ' + p.catalog : ''}`, path: partUrl(p), body, jsonld,
+    title: `${p.catalog ? p.catalog + ' · ' : ''}${title}`, path: partUrl(p), body,
+    jsonld: [jsonld, { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Početna', item: cfg.siteUrl + '/' },
+      ...(p.make ? [{ '@type': 'ListItem', position: 2, name: p.make, item: `${cfg.siteUrl}/katalog?marka=${encodeURIComponent(p.make)}` }] : []),
+      { '@type': 'ListItem', position: p.make ? 3 : 2, name: title, item: cfg.siteUrl + partUrl(p) }] }],
     ogImage: imgs[0] ? imgUrl(imgs[0], 960) : null,
-    desc: `${title}${p.vehicle ? ' (' + p.vehicle + ')' : ''}${p.price ? ' — ' + money(p.price) : ' — cijena na upit'}. Polovni dio, ${cfg.name} ${cfg.city}.`,
+    desc: `${p.catalog ? 'Kataloški broj ' + p.catalog + ': ' : ''}${title}${p.vehicle ? ' (' + p.vehicle + ')' : ''}${p.price ? ' — ' + money(p.price) : ' — cijena na upit'}. Polovni dio, garancija 7 dana, ${cfg.name} ${cfg.city}.`,
   });
+}
+
+// ---- felne ----
+const rimTitle = r => [nice(r.type) || 'Felne', r.diameter && `${r.diameter}"`, r.bolts, r.make, r.model].filter(Boolean).join(' ');
+const rimUrl = r => `/felna/${slugify([rimTitle(r), r.internal].filter(Boolean).join(' ')) || 'felne'}-${r.id}`;
+const rimSub = r => [r.width && `${r.width}J`, r.et && `ET ${r.et}`, r.center && `CB ${r.center}`].filter(Boolean).join(' · ');
+
+function rimCard(r) {
+  const imgs = parseImgs(r), title = rimTitle(r);
+  return `<article class="card"><a href="${rimUrl(r)}">
+  <div class="card-img">${imgs[0]
+    ? `<img src="${imgUrl(imgs[0], 480)}" srcset="${imgUrl(imgs[0], 240)} 240w, ${imgUrl(imgs[0], 480)} 480w" sizes="(max-width:600px) 46vw, 260px" loading="lazy" alt="${esc(title)}" width="480" height="360">`
+    : '<div class="noimg">Nema slike</div>'}</div>
+  <div class="card-b"><h3>${esc(title)}</h3>${rimSub(r) ? `<p class="sub">${esc(rimSub(r))}</p>` : ''}
+  <div class="card-f">${r.price ? `<span class="price">${esc(money(r.price))}</span>` : '<span class="ask">Cijena na upit</span>'}
+  ${r.internal ? `<span class="code">${esc(r.internal)}</span>` : ''}</div></div></a></article>`;
+}
+
+function rimsList({ rows, f, fx }) {
+  const sl = (name, label, opts, cur, ph = 'Sve') => `<label class="f"><span>${esc(label)}</span><select name="${name}"><option value="">${ph}</option>${opts.map(o =>
+    `<option value="${esc(o)}"${o === cur ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
+  const body = `
+<nav class="crumbs"><a href="/">Početna</a> › <span>Felne</span></nav>
+<section class="panel"><div class="panel-h"><h1>Felne</h1><span class="muted">${rows.length} ${rows.length === 1 ? 'komplet / komad' : 'kompleta i komada'} na stanju</span></div>
+  <form class="sf" method="get" action="/felne" data-auto>
+    <div class="sf-grid">
+      ${sl('tip', 'Vrsta', fx.types, f.tip)}
+      ${sl('promjer', 'Promjer (inča)', fx.diameters, f.promjer)}
+      ${sl('sirina', 'Širina (J)', fx.widths, f.sirina)}
+      ${sl('raspored', 'Raspored šarafa', fx.bolts, f.raspored)}
+      ${sl('marka', 'Marka vozila', fx.makes, f.marka)}
+      <label class="f"><span>Cijena</span><select name="cijena"><option value="">Sve</option><option value="1"${f.cijena ? ' selected' : ''}>Samo sa cijenom</option></select></label>
+    </div>
+    <div class="sf-actions"><button class="btn" type="submit">Traži</button><a class="reset" href="/felne">Poništi sve</a></div>
+  </form>
+</section>
+${rows.length ? `<div class="grid g3">${rows.map(rimCard).join('')}</div>` : `<div class="empty"><p>Nema felni za ovaj izbor.</p><p>Pozovi nas — možda imamo felne koje još nisu u bazi.</p>${contactBtnsMsg('Zdravo, tražim felne koje nisam našao na sajtu.')}</div>`}`;
+  return layout({ title: 'Felne — aluminijumske i čelične', path: '/felne', noindex: Object.values(f).some(Boolean), body,
+    desc: `Polovne felne (aluminijumske i čelične) po promjeru, širini i rasporedu šarafa — ${cfg.name}, ${cfg.city}.` });
+}
+
+function rimDetail(r) {
+  const imgs = parseImgs(r), title = rimTitle(r);
+  const rows = [['Šifra', r.internal], ['Vrsta', nice(r.type)], ['Promjer', r.diameter && r.diameter + '"'], ['Širina', r.width && r.width + ' J'],
+    ['Raspored šarafa', r.bolts], ['ET', r.et], ['Centralna rupa', r.center && r.center + ' mm'], ['Marka vozila', r.make], ['Model', r.model],
+    ['Šarafi uključeni', r.screws ? 'Da' : null], ['Hromirane / niklovane', r.chrome ? 'Da' : null], ['Oštećene', r.damaged ? 'Da' : null]]
+    .filter(([, v]) => v).map(([k, v]) => `<tr><th>${k}</th><td>${esc(v)}</td></tr>`).join('');
+  const msg = `Zdravo, vidio sam ove felne na vašem sajtu: ${title}${r.internal ? ', šifra ' + r.internal : ''}. Interesuje me cijena.\n${cfg.siteUrl}${rimUrl(r)}`;
+  const body = `
+<nav class="crumbs"><a href="/">Početna</a> › <a href="/felne">Felne</a> › <span>${esc(title)}</span></nav>
+<div class="detail">
+  <section class="gal">
+    <div class="gal-main">${imgs[0] ? `<img id="mainimg" src="${imgUrl(imgs[0], 960)}" alt="${esc(title)}" width="960" height="720">` : '<div class="noimg big">Nema slike</div>'}</div>
+    ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((f, i) => `<button type="button" data-thumb="${imgUrl(f, 960)}" aria-label="Slika ${i + 1}"><img src="${imgUrl(f, 240)}" alt="" loading="lazy" width="240" height="180"></button>`).join('')}</div>` : ''}
+  </section>
+  <section class="info">
+    <h1>${esc(title)}</h1>
+    ${rimSub(r) ? `<p class="sub">${esc(rimSub(r))}</p>` : ''}
+    <div class="box buy">
+      ${r.price ? `<div class="price big">${esc(money(r.price))}</div>` : '<div class="ask big">Cijena na upit</div>'}
+      <p class="muted">Pozovi ili nam piši — rado ćemo ti odgovoriti.</p>
+      ${contactBtnsMsg(msg, '')}
+    </div>
+    ${r.note ? `<p class="note">${esc(r.note)}</p>` : ''}
+  </section>
+</div>
+<section class="sheet"><h2>Specifikacija felni</h2><div class="sheet-grid"><table class="specs"><tbody>${rows}</tbody></table></div></section>
+${mapSection('Gdje preuzeti ove felne', true)}`;
+  const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: title, ...(imgs.length ? { image: imgs.slice(0, 5).map(f => cfg.siteUrl + imgUrl(f, 960)) } : {}),
+    ...(r.internal ? { sku: r.internal } : {}), ...(r.make ? { brand: { '@type': 'Brand', name: r.make } } : {}), itemCondition: 'https://schema.org/UsedCondition',
+    ...(r.price ? { offers: { '@type': 'Offer', priceCurrency: 'BAM', price: String(r.price), availability: 'https://schema.org/InStock', url: cfg.siteUrl + rimUrl(r) } } : {}) };
+  return layout({ title, path: rimUrl(r), body, jsonld, ogImage: imgs[0] ? imgUrl(imgs[0], 960) : null,
+    desc: `${title}${rimSub(r) ? ' (' + rimSub(r) + ')' : ''}${r.price ? ' — ' + money(r.price) : ' — cijena na upit'}. Polovne felne, ${cfg.name} ${cfg.city}.` });
 }
 
 function buyout() {
@@ -439,4 +541,4 @@ function notFound() {
   return layout({ title: 'Stranica nije pronađena', noindex: true, body: `<div class="empty"><h1>Stranica nije pronađena</h1><p><a class="btn" href="/">Na početnu</a></p></div>` });
 }
 
-module.exports = { buyout, listFrag, esc, slugify, nice, partTitle, partUrl, imgUrl, money, rowToPart, parseImgs, layout, home, list, catalog, detail, unavailable, contact, notFound };
+module.exports = { rimsList, rimDetail, rimUrl, rimTitle, yardNotice, warranty, contactBtnsMsg, contactBtns, buyout, listFrag, esc, slugify, nice, partTitle, partUrl, imgUrl, money, rowToPart, parseImgs, layout, home, list, catalog, detail, unavailable, contact, notFound };

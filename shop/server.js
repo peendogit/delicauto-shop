@@ -65,6 +65,8 @@ function cached(key, fn) {
 }
 const makesList = () => cached('makes', () => db.prepare(
   `SELECT make, COUNT(*) AS n FROM parts WHERE make IS NOT NULL AND make <> '' GROUP BY make ORDER BY n DESC`).all());
+const yardFor = (marka, model) => (marka && model)
+  ? db.prepare('SELECT make, model, year, fuel, engine_code FROM yard_vehicles WHERE make = ? AND model = ? ORDER BY year DESC').all(marka, model) : [];
 const alpha = (a, b) => String(a).localeCompare(String(b), 'bs', { numeric: true });
 const modelsOf = make => cached('models:' + make, () => db.prepare(
   `SELECT model, COUNT(*) AS n FROM parts WHERE make = ? AND model IS NOT NULL AND model <> '' GROUP BY model`).all(make)
@@ -132,6 +134,36 @@ function buildList(f) {
 
 // ---------- stranice ----------
 app.get('/static/*', serveStatic(path.join(__dirname, 'public'), 86400));
+app.get('/manifest.webmanifest', (req, res) => {
+  res.setHeader('Content-Type', 'application/manifest+json; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.end(JSON.stringify({
+    name: 'Auto Otpad Delić', short_name: 'Delić', description: 'Polovni auto dijelovi, Bijeljina',
+    lang: 'bs', start_url: '/?utm_source=pwa', scope: '/', display: 'standalone',
+    background_color: '#0f2a47', theme_color: '#0f2a47',
+    icons: [
+      { src: '/static/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/static/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/static/icon-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+    ]
+  }));
+});
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.end(`var V='delic-v1',OFF='/offline';
+self.addEventListener('install',function(e){e.waitUntil(caches.open(V).then(function(c){return c.add(OFF)}).then(function(){return self.skipWaiting()}))});
+self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(k){return Promise.all(k.filter(function(x){return x!==V}).map(function(x){return caches.delete(x)}))}).then(function(){return self.clients.claim()}))});
+self.addEventListener('fetch',function(e){var r=e.request,u=new URL(r.url);
+if(r.method!=='GET'||u.origin!==location.origin||u.pathname.indexOf('/admin')===0||u.pathname.indexOf('/api')===0)return;
+if(r.mode==='navigate'){e.respondWith(fetch(r).catch(function(){return caches.match(OFF)}));return}
+if(u.pathname.indexOf('/static/')===0){e.respondWith(fetch(r).then(function(x){var c=x.clone();caches.open(V).then(function(h){h.put(r,c)});return x}).catch(function(){return caches.match(r)}))}});
+`);
+});
+app.get('/offline', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.end('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nema veze</title><body style="font-family:sans-serif;text-align:center;padding:48px 20px;background:#0f2a47;color:#fff"><img src="/static/logo.png" width="160" alt="Delić"><h2>Nema internet veze</h2><p>Pozovite nas: <a style="color:#f5a300" href="tel:+38766027888">+387 66 027 888</a></p><p><a style="color:#f5a300" href="/">Pokušaj ponovo</a></p>');
+});
 app.get('/favicon.ico', (req, res) => res.redirect('/static/favicon.png', 301));
 
 app.get('/', (req, res) => {
@@ -178,6 +210,7 @@ app.get('/katalog', (req, res) => {
     variants: marka && model ? vehiclesOf(marka, model) : [],
     tree: marka && model ? groupTree(base) : [],
     total: marka && model ? db.prepare('SELECT COUNT(*) AS n FROM parts WHERE make = ? AND model = ?').get(marka, model).n : 0,
+    yard: yardFor(marka, model),
   }));
 });
 
@@ -201,12 +234,15 @@ app.get('/dijelovi', (req, res) => {
     for (const [k, v] of Object.entries({ ...f, ...extra })) if (v && !(k === 'page' && v === 1) && !(k === 'prikaz' && v === 'lista')) p.set(k, v);
     return p.toString();
   };
-  if (req.query.frag) { res.setHeader('Cache-Control', 'no-store'); return res.html(V.listFrag({ rows, total, page, pages, f, baseQuery })); }
-  res.html(V.list({ rows, total, page, pages, f, facets: facets(f.marka, f.model), tree: groupTree(f), baseQuery }));
+  if (req.query.frag) { res.setHeader('Cache-Control', 'no-store'); return res.html(V.listFrag({ rows, total, page, pages, f, baseQuery, yard: yardFor(f.marka, f.model) })); }
+  res.html(V.list({ rows, total, page, pages, f, facets: facets(f.marka, f.model), tree: groupTree(f), baseQuery, yard: yardFor(f.marka, f.model) }));
 });
 
 app.get('/dio/:slug', async (req, res) => {
-  const id = parseInt(req.params.slug, 10);
+  // adresa: /dio/<kataloski-broj>-<naziv>-<id>  (stari oblik /dio/<id>-<naziv> se i dalje prepoznaje)
+  const tail = /-(\d{1,16})$/.exec(req.params.slug), head = /^(\d{1,16})(?:-|$)/.exec(req.params.slug);
+  let id = tail ? parseInt(tail[1], 10) : 0;
+  if (!id || !getPart(id)) id = head ? parseInt(head[1], 10) : id;
   if (!id) return res.html(V.notFound(), 404);
   // provjera uživo kod aplikacije: prodan dio se ne smije prikazati kao dostupan
   const live = await appApi.part(id, 3000);
@@ -379,7 +415,8 @@ app.get('/sitemap.xml', (req, res) => {
     Array.from({ length: chunks }, (_, i) => `<sitemap><loc>${cfg.siteUrl}/sitemap-dijelovi-${i + 1}.xml</loc></sitemap>`).join('')}</sitemapindex>`), 'application/xml; charset=utf-8');
 });
 app.get('/sitemap-pages.xml', (req, res) => {
-  const urls = ['/', '/katalog', '/dijelovi', '/otkup', '/kontakt', ...makesList().map(m => '/katalog?marka=' + encodeURIComponent(m.make))];
+  const urls = ['/', '/katalog', '/dijelovi', '/felne', '/otkup', '/kontakt', ...makesList().map(m => '/katalog?marka=' + encodeURIComponent(m.make)),
+    ...db.prepare('SELECT * FROM rims').all().map(r => V.rimUrl(rimRow(r)))];
   res.send(xml(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(u => `<url><loc>${V.esc(cfg.siteUrl + u)}</loc></url>`).join('')}</urlset>`), 'application/xml; charset=utf-8');
 });
 app.get('/sitemap-dijelovi-:n.xml', (req, res) => {
@@ -406,6 +443,35 @@ function sameOrigin(req) {
   try { return new URL(o).host === req.headers.host; } catch { return false; }
 }
 const fmtTs = t => new Date(t).toLocaleString('bs-BA', { timeZone: 'Europe/Sarajevo' });
+
+// ---- felne ----
+const rimFacets = () => cached('rimf', () => {
+  const d = (col, num) => db.prepare(`SELECT DISTINCT ${col} AS v FROM rims WHERE ${col} IS NOT NULL AND ${col} <> ''`).all().map(r => String(r.v))
+    .sort(num ? (a, b) => parseFloat(a) - parseFloat(b) || alpha(a, b) : alpha);
+  return { types: d('type'), diameters: d('diameter', true), widths: d('width', true), bolts: d('bolts'), makes: d('make') };
+});
+const rimRow = r => ({ ...r, price: r.price || null });
+app.get('/felne', (req, res) => {
+  const q = req.query;
+  const f = { tip: clean(q.tip, 60), promjer: clean(q.promjer, 10), sirina: clean(q.sirina, 10), raspored: clean(q.raspored, 20), marka: clean(q.marka, 60), cijena: q.cijena ? '1' : '' };
+  const where = [], args = [];
+  if (f.tip) { where.push('type = ?'); args.push(f.tip); }
+  if (f.promjer) { where.push('diameter = ?'); args.push(f.promjer); }
+  if (f.sirina) { where.push('width = ?'); args.push(f.sirina); }
+  if (f.raspored) { where.push('bolts = ?'); args.push(f.raspored); }
+  if (f.marka) { where.push('make = ?'); args.push(f.marka); }
+  if (f.cijena) where.push('price > 0');
+  const rows = db.prepare(`SELECT * FROM rims ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY CAST(diameter AS REAL), id LIMIT 300`).all(...args).map(rimRow);
+  res.html(V.rimsList({ rows, f, fx: rimFacets() }));
+});
+app.get('/felna/:slug', (req, res) => {
+  const m = /-(\d{1,16})$/.exec(req.params.slug);
+  const r = m && db.prepare('SELECT * FROM rims WHERE id = ?').get(parseInt(m[1], 10));
+  if (!r) return res.html(V.unavailable(0), 410);
+  const rr = rimRow(r), canonical = V.rimUrl(rr);
+  if (decodeURIComponent(req.path) !== canonical) return res.redirect(canonical, 301);
+  res.html(V.rimDetail(rr));
+});
 
 // ---- otkup vozila: formular sa slikama; ponuda ide na mail, u admin i na Telegram ----
 const OTKUP_DIR = path.join(cfg.dataDir, 'otkup');

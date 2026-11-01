@@ -16,6 +16,11 @@
   }
   badge();
 
+  // felne: filteri se primjenjuju čim nešto izabereš
+  document.querySelectorAll('form[data-auto]').forEach(function (f) {
+    f.addEventListener('change', function () { f.querySelectorAll('input[name],select[name]').forEach(function (el) { if (!el.value) el.disabled = true; }); f.submit(); });
+  });
+
   // Viber ne podržava gotov tekst u linku: poruka se kopira, pa je samo zalijepiš u razgovor
   function copyText(t) {
     try { if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(t); return true; } } catch (e) { /* dalje */ }
@@ -262,4 +267,24 @@
         .catch(function () { msg.className = 'form-msg err'; msg.textContent = 'Nema veze, pokušaj ponovo.'; btn.disabled = false; });
     });
   }
+})();
+
+// PWA: service worker + dugme za instalaciju
+(function () {
+  if ('serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
+  var dp = null, standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (standalone) return;
+  function show(txt, fn) {
+    if (document.getElementById('pwa-btn')) return;
+    var b = document.createElement('button'); b.id = 'pwa-btn'; b.type = 'button'; b.textContent = txt;
+    b.onclick = function () { fn(); }; document.body.appendChild(b);
+    var x = document.createElement('span'); x.id = 'pwa-x'; x.textContent = '×'; x.onclick = function () { b.remove(); x.remove(); try { localStorage.setItem('pwaNo', '1'); } catch (e) {} };
+    document.body.appendChild(x);
+  }
+  try { if (localStorage.getItem('pwaNo')) return; } catch (e) {}
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); dp = e;
+    show('📲 Instaliraj aplikaciju', function () { dp.prompt(); dp.userChoice.then(function () { var b = document.getElementById('pwa-btn'), x = document.getElementById('pwa-x'); if (b) b.remove(); if (x) x.remove(); }); });
+  });
+  if (/iphone|ipad/i.test(navigator.userAgent)) show('📲 Instaliraj aplikaciju', function () { alert('Pritisnite dugme Podijeli, zatim "Dodaj na početni ekran".'); });
 })();

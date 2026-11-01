@@ -14,7 +14,7 @@ const file = process.argv[2];
 if (!file || !fs.existsSync(file)) { console.error('Upotreba: node tools/import-dump.js backup.sql.gz'); process.exit(1); }
 const IMG_PATTERN = process.env.IMG_PATTERN || '{id}.jpg';
 const MAX_IMAGES = 8;
-const WANT = new Set(['spare_part', 'spare_part_type', 'spare_part_group', 'car_make', 'car_model', 'lib_attachment']);
+const WANT = new Set(['spare_part', 'spare_part_type', 'spare_part_group', 'car_make', 'car_model', 'lib_attachment', 'rims', 'rims_type', 'rims_diameter', 'rims_width', 'rims_bolt_pattern', 'vehicle']);
 
 // ---- parser MySQL INSERT redova ----
 function parseValues(s, i) {
@@ -81,7 +81,7 @@ const yy = d => (d ? String(d).slice(2, 4) : '');
   const groups = byId(data.spare_part_group), types = byId(data.spare_part_type), makes = byId(data.car_make), models = byId(data.car_model);
   const imgs = new Map();
   for (const a of data.lib_attachment) {
-    if (a.type !== 'SPARE_PART' || a.active !== 1 || a.deleted_date) continue;
+    if ((a.type !== 'SPARE_PART' && a.type !== 'RIMS') || a.active !== 1 || a.deleted_date) continue;
     (imgs.get(a.object_id) || imgs.set(a.object_id, []).get(a.object_id)).push(a);
   }
   const imgName = id => IMG_PATTERN.replace('{id}', id).replace('{p2}', id.slice(0, 2)).replace('{p4}', id.slice(0, 4));
@@ -118,6 +118,35 @@ const yy = d => (d ? String(d).slice(2, 4) : '');
       });
       n++;
     }
+
+    // felne
+    const rtypes = byId(data.rims_type), rdia = byId(data.rims_diameter), rwid = byId(data.rims_width), rpat = byId(data.rims_bolt_pattern);
+    db.exec('DELETE FROM rims; DELETE FROM yard_vehicles;');
+    const insRim = db.prepare('INSERT INTO rims(id, internal, type, diameter, width, bolts, et, center, make, model, damaged, screws, chrome, note, price, images, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+    let nr = 0;
+    for (const r of data.rims) {
+      if (r.status !== 'UNSOLD' || r.active !== 1 || r.deleted_date) continue;
+      const pat = rpat.get(r.pattern_id), mk = makes.get(r.car_make_id), mo = models.get(r.car_model_id);
+      const pics = (imgs.get(r.id) || []).sort((a, b) => b.main_picture - a.main_picture).slice(0, MAX_IMAGES).map(a => imgName(a.id));
+      insRim.run(stableId(r.id), r.internal_code, (rtypes.get(r.type_id) || {}).title || null, ((rdia.get(r.diameter_id) || {}).title || '').replace(/"/g, '').trim() || null,
+        ((rwid.get(r.width_id) || {}).title || '').replace(/\s*j$/i, '').trim() || null, pat ? `${pat.bolt_number}x${pat.bolt_distance}` : null,
+        r.offSet || null, r.center_hole ? String(r.center_hole) : null, mk ? mk.name : null, mo ? [mo.name, mo.generation_name].filter(Boolean).join(' ') : null,
+        r.damaged ? 1 : 0, r.screw_included ? 1 : 0, r.chrome_nickel_plated ? 1 : 0, r.note ? String(r.note).replace(/\r/g, '').trim() : null,
+        r.price > 0 ? r.price : null, JSON.stringify(pics), Date.now());
+      nr++;
+    }
+    // vozila na placu (cijelo vozilo, još nije rastavljeno na dijelove)
+    const insVeh = db.prepare('INSERT INTO yard_vehicles(id, make, model, year, fuel, engine_code, body, code) VALUES (?,?,?,?,?,?,?,?)');
+    let nv = 0;
+    for (const v of data.vehicle) {
+      if (v.status !== 'COMPLETE' || v.active !== 1 || v.deleted_date) continue;
+      const mk = makes.get(v.make_id), mo = models.get(v.model_id);
+      if (!mk || !mo) continue;
+      insVeh.run(stableId(v.id), mk.name, [mo.name, mo.generation_name].filter(Boolean).join(' '), v.model_year || null,
+        MAP.fuel[v.fuel_type] || null, v.engine_code || null, MAP.body[v.the_type] || v.the_type || null, v.internal_code || null);
+      nv++;
+    }
+    console.log(`Felne: ${nr}, vozila na placu: ${nv}`);
     db.exec('COMMIT');
   } catch (e) { db.exec('ROLLBACK'); throw e; }
   const s = db.prepare('SELECT COUNT(*) c, SUM(price>0) pr, SUM(images!=\'[]\') im FROM parts').get();
