@@ -39,3 +39,17 @@ Pri prvom pokretanju shop povuče sve dijelove na stanju (nekoliko minuta za ~18
 - Slike se smanjuju i keširaju u `shop/data/imgcache`.
 - Plaćanje je pouzećem / preuzimanje. Cijena dostave se dogovara telefonom. Kartično plaćanje se može dodati naknadno.
 - Test cijelog toka (lažna aplikacija + shop): `npm test`.
+
+## Uvoz iz backupa baze (radi odmah, bez programera)
+
+Ako nemaš API aplikacije, shop se puni iz backupa baze (ostavi `APP_API_KEY` prazan u `.env`):
+
+1. Backup (`.sql.gz`) stavi na server, npr. `~/backup.sql.gz`.
+2. `cd ~/delicauto-shop/shop && node tools/import-dump.js ~/backup.sql.gz` — uveze samo dijelove NA STANJU (nema prodanih). Korisnici i lozinke iz backupa se ne čitaju.
+3. `pm2 restart delicauto-shop`.
+
+Napomene:
+- To je **snimak** stanja iz dana backupa. Za svježe stanje ponovi uvoz s novim backupom. Prava veza (automatski) dolazi kad programer da API.
+- Cijena iz backupa se prikazuje ako postoji (BAM = KM), inače „Pošalji upit“.
+- **Slike:** u backupu su samo ID-evi. Fajlove slika treba staviti u `UPLOADS_DIR`, a naziv fajla se određuje sa `IMG_PATTERN` u `.env` (zadano `{id}.jpg`).
+- U ovom načinu shop ne rezerviše dio u aplikaciji. Narudžba stiže u Telegram i `/admin`; kad je označiš „završena“, dio nestaje iz shopa.

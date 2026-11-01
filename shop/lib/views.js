@@ -150,7 +150,7 @@ function partRow(p, i, start = 0) {
   <td data-l="Cijena" class="r c-price">${p.price ? `<b>${esc(money(p.price))}</b>` : '<span class="ask">Na upit</span>'}</td>
   <td class="c-act">${p.price
     ? `<button type="button" class="btn sm buy" data-add="${p.id}" data-max="${p.qty || 1}">U korpu</button>`
-    : `<a class="btn sm ghost" href="${url}#upit">Pošalji upit</a>`}</td>
+    : `<a class="btn sm ghost" href="${url}#upit">Upit</a>`}</td>
 </tr>`;
 }
 function partsTable(rows, start = 0) {

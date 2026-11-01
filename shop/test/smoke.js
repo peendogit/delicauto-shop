@@ -75,7 +75,7 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
     let r = await get('/dijelovi');
     ok(r.status === 200 && tb(r.text).includes('Kutija osiguraca') && tb(r.text).includes('Land Rover Range Rover Sport'), 'tabela prikazuje dio 1 (naziv normalizovan)');
     ok(tb(r.text).includes('85 KM'), 'cijena prikazana kad postoji');
-    ok(tb(r.text).includes('Pošalji upit') && tb(r.text).includes('Na upit'), '„Pošalji upit“ kad cijene nema');
+    ok(tb(r.text).includes('>Upit<') && tb(r.text).includes('Na upit'), '„Pošalji upit“ kad cijene nema');
     ok(!r.text.includes('Zrcalo'), 'prodani dio nije prikazan');
     ok(!r.text.includes('nabavna'), 'nabavne cijene nema u izlazu');
     r = await get('/dijelovi?q=osigura%C4%8Da'); ok(r.text.includes('Kutija osiguraca') && !r.text.includes('Golf 7'), 'pretraga s dijakritikom (osigurača)');

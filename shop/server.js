@@ -42,6 +42,19 @@ function makeRef() {
 
 const getPart = id => { const r = db.prepare('SELECT * FROM parts WHERE id = ?').get(id); return r ? V.rowToPart(r) : null; };
 
+// Samostalni način rada: bez APP_API_KEY shop radi iz uvezene baze (tools/import-dump.js), bez veze s aplikacijom.
+// Dostupnost se ne provjerava uživo; kad narudžbu u /admin označiš „završena“, dio nestaje iz shopa.
+const STANDALONE = !cfg.appKey;
+if (STANDALONE) {
+  appApi.part = async id => { const p = getPart(id); return p ? { ok: true, data: { ...p, available: true } } : { ok: true, data: { id: undefined } }; };
+  appApi.reserve = async () => ({ ok: true });
+  appApi.release = async () => ({ ok: true });
+  sync.applyItem = () => {};
+  sync.poll = () => {};
+  sync.fullSync = () => {};
+  sync.start = () => console.log('[shop] samostalni način: dijelovi iz uvezene baze, bez veze s aplikacijom');
+}
+
 // ---------- facet-i (keširani 60 s) ----------
 const facetCache = new Map();
 function cached(key, fn) {
@@ -427,6 +440,7 @@ app.post('/admin/order/:id', async (req, res) => {
   if (o && status) {
     db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, o.id);
     if (status === 'otkazana') { await appApi.release(o.ref); sync.poll(); }
+    if (STANDALONE && status === 'zavrsena') for (const it of db.prepare('SELECT part_id FROM order_items WHERE order_id = ?').all(o.id)) sync.remove(it.part_id);
   }
   res.redirect('/admin', 303);
 });
@@ -451,7 +465,6 @@ app.onError = (err, req, res, status) => (req.path.startsWith('/api/') ? res.jso
 
 app.listen(cfg.port, () => {
   console.log(`[shop] ${cfg.name} — http://localhost:${cfg.port}  (sqlite: ${db.driver}, sharp: ${sharp ? 'da' : 'ne'})`);
-  if (!cfg.appKey) console.warn('[shop] UPOZORENJE: APP_API_KEY nije postavljen — sinhronizacija neće raditi');
   sync.start();
 });
 
