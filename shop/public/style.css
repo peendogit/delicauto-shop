@@ -259,3 +259,16 @@ table.parts{width:100%;border-collapse:collapse;font-size:.88rem}
   .fs:not(.shut) legend::after{content:"－";color:#7d8a9b;margin-left:4px}
   .btn,.top-search button,.mainnav a,.sf select,.sf input{min-height:44px}
 }
+details.gdet>summary{font-weight:700;font-size:1.05rem;padding:10px 0;cursor:pointer;color:var(--navy,#0f2a47)}
+@media(max-width:899px){
+  .vbox{display:none}
+  .results{scroll-margin-top:8px}
+  .pg-h{font-size:1.2rem;margin:6px 0}
+  .parts tbody tr{padding:14px 12px}
+  .parts td.c-name{font-size:1.08rem}
+}
+@media(max-width:899px){
+  .parts td.e{display:none}
+  .results{scroll-margin-top:178px}
+  .parts td.c-price{margin-top:2px}
+}

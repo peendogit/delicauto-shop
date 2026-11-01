@@ -76,6 +76,11 @@
     document.querySelectorAll('details.mfold, details.panel').forEach(function (d) { d.open = false; });
   }
 
+  // telefon: nakon pretrage/filtera odmah skoči na rezultate
+  if (document.getElementById('rez') && location.search.length > 1 && window.matchMedia && !window.matchMedia('(min-width:900px)').matches) {
+    window.addEventListener('load', function () { var r = document.getElementById('rez'); if (r) r.scrollIntoView(); });
+  }
+
   // AJAX forme (upit)
   document.querySelectorAll('form[data-ajax]').forEach(function (f) {
     f.addEventListener('submit', function (e) {

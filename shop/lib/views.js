@@ -51,7 +51,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=2">
+<link rel="stylesheet" href="/static/style.css?v=4">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''}</span></div></div>
@@ -71,7 +71,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=2" defer></script>
+<script src="/static/app.js?v=4" defer></script>
 </body></html>`;
 }
 
@@ -143,10 +143,10 @@ function partRow(p, i, start = 0) {
   <td data-l="Šifra" class="mono">${esc(p.internal || '—')}</td>
   <td data-l="Dio" class="c-name"><a href="${url}">${esc(nice(p.type) || 'Dio')}</a>${p.group ? `<small>${esc(p.group)}</small>` : ''}</td>
   <td data-l="Vozilo" class="c-veh"><b>${esc(veh || '—')}</b>${veh2 ? `<small>${esc(veh2)}</small>` : ''}</td>
-  <td data-l="Kat. broj" class="mono">${esc(p.catalog || '—')}</td>
-  <td data-l="Strana">${esc(p.side || '—')}</td>
-  <td data-l="ccm" class="r mono">${num(p.displacement)}</td>
-  <td data-l="kW" class="r mono">${num(p.power)}</td>
+  <td data-l="Kat. broj" class="mono${p.catalog ? '' : ' e'}">${esc(p.catalog || '—')}</td>
+  <td data-l="Strana" class="${p.side ? '' : 'e'}">${esc(p.side || '—')}</td>
+  <td data-l="ccm" class="r mono${p.displacement ? '' : ' e'}">${num(p.displacement)}</td>
+  <td data-l="kW" class="r mono${p.power ? '' : ' e'}">${num(p.power)}</td>
   <td data-l="Cijena" class="r c-price">${p.price ? `<b>${esc(money(p.price))}</b>` : '<span class="ask">Na upit</span>'}</td>
   <td class="c-act">${p.price
     ? `<button type="button" class="btn sm buy" data-add="${p.id}" data-max="${p.qty || 1}">U korpu</button>`
@@ -168,7 +168,7 @@ function home({ makes, latest, total, facets, f }) {
 </section>
 ${makes.length ? `<section><div class="sec-h"><h2>Katalog po vozilu</h2><a href="/katalog">Sve marke →</a></div><div class="chips">${makes.map(m =>
     `<a class="chip" href="/katalog?marka=${encodeURIComponent(m.make)}">${esc(m.make)} <i>${m.n}</i></a>`).join('')}</div></section>` : ''}
-${(facets.groups || []).length ? `<section><div class="sec-h"><h2>Grupe dijelova</h2><a href="/dijelovi">Svi dijelovi →</a></div><div class="gidx">${facets.groups.map((g, i) => `<a href="/dijelovi?grupa=${encodeURIComponent(g)}"><i>${i + 1}</i>${esc(g)}</a>`).join('')}</div></section>` : ''}
+${(facets.groups || []).length ? `<section><details class="mfold gdet" open><summary>Grupe dijelova</summary><div class="gidx">${facets.groups.map((g, i) => `<a href="/dijelovi?grupa=${encodeURIComponent(g)}"><i>${i + 1}</i>${esc(g)}</a>`).join('')}</div></details></section>` : ''}
 <section><div class="sec-h"><h2>Nedavno dodano</h2><a href="/dijelovi">Svi dijelovi →</a></div>
   ${latest.length ? partsTable(latest) : '<p class="muted">Katalog se učitava, pokušaj ponovo za koji trenutak.</p>'}
 </section>
@@ -225,7 +225,7 @@ function list({ rows, total, page, pages, f, facets, tree, baseQuery }) {
     : `<h3>Vozilo</h3><p class="muted small">Odaberi vozilo da vidiš samo dijelove koji mu odgovaraju.</p><a class="btn sm" href="/katalog">Odaberi vozilo</a>`}</div>
   <details class="mfold" open><summary>Grupe dijelova</summary><div class="side-box"><h3 class="dsk">Grupe dijelova</h3>${treeHtml(tree, f, baseQuery)}</div></details>
 </aside>
-<div class="results">
+<div class="results" id="rez">
   <h1 class="pg-h">${esc(heading)}</h1>
   <div class="toolbar"><span class="count">${total.toLocaleString('de-DE')} ${total === 1 ? 'dio' : 'dijelova'}</span>
     <span class="tb-r"><span class="vt"><em>Sortiraj</em>${link({ sort: '' }, 'Najnovije', !f.sort)}${link({ sort: 'cijena_asc' }, 'Cijena ↑', f.sort === 'cijena_asc')}${link({ sort: 'cijena_desc' }, 'Cijena ↓', f.sort === 'cijena_desc')}</span>
