@@ -198,6 +198,7 @@ app.get('/dijelovi', (req, res) => {
     for (const [k, v] of Object.entries({ ...f, ...extra })) if (v && !(k === 'page' && v === 1) && !(k === 'prikaz' && v === 'lista')) p.set(k, v);
     return p.toString();
   };
+  if (req.query.frag) { res.setHeader('Cache-Control', 'no-store'); return res.html(V.listFrag({ rows, total, page, pages, f, baseQuery })); }
   res.html(V.list({ rows, total, page, pages, f, facets: facets(f.marka, f.model), tree: groupTree(f), baseQuery }));
 });
 

@@ -55,6 +55,31 @@
           .then(function (d) { fill(v, d.vehicles, 'Sve', false); }).catch(function () { /* mreža */ });
       });
     }
+    // pretraga uživo: rezultati se pojavljuju dok kucaš (bez klika na „Traži“)
+    var live = document.getElementById('live'), rez = document.getElementById('rez');
+    if (live || rez) {
+      var timer = null, ctrl = null, seq = 0;
+      var run = function () {
+        var qs = new URLSearchParams(), ready = false;
+        form.querySelectorAll('input[name],select[name]').forEach(function (el) {
+          if (!el.value || el.disabled) return;
+          qs.set(el.name, el.value);
+          if (el.tagName === 'SELECT' || el.value.trim().length >= 2) ready = true;
+        });
+        var mine = ++seq;
+        if (!ready) { if (live) live.innerHTML = ''; return; }
+        if (ctrl) ctrl.abort(); ctrl = window.AbortController ? new AbortController() : null;
+        var url = '/dijelovi?' + qs.toString();
+        fetch(url + '&frag=1', ctrl ? { signal: ctrl.signal } : undefined).then(function (r) { return r.text(); }).then(function (html) {
+          if (mine !== seq) return;
+          if (live) live.innerHTML = html;
+          else { var cur = document.getElementById('rez'); if (cur) cur.outerHTML = html; try { history.replaceState(null, '', url); } catch (e) { /* */ } }
+        }).catch(function () { /* prekinuto ili nema veze */ });
+      };
+      var later = function () { clearTimeout(timer); timer = setTimeout(run, 250); };
+      form.addEventListener('input', later);
+      form.addEventListener('change', later);
+    }
     // prazna polja se ne šalju, da adresa ostane kratka
     form.addEventListener('submit', function () {
       form.querySelectorAll('input[name],select[name]').forEach(function (el) { if (!el.value) el.disabled = true; });

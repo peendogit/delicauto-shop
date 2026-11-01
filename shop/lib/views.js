@@ -51,7 +51,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=4">
+<link rel="stylesheet" href="/static/style.css?v=5">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''}</span></div></div>
@@ -71,7 +71,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=4" defer></script>
+<script src="/static/app.js?v=5" defer></script>
 </body></html>`;
 }
 
@@ -166,9 +166,9 @@ function home({ makes, latest, total, facets, f }) {
     <span class="muted">${total ? `<b>${total.toLocaleString('de-DE')}</b> dijelova na stanju` : 'Dijelovi s vozila iz našeg otpada'}</span></div>
   ${searchForm(f, facets)}
 </section>
+<div id="live" aria-live="polite"></div>
 ${makes.length ? `<section><div class="sec-h"><h2>Katalog po vozilu</h2><a href="/katalog">Sve marke →</a></div><div class="chips">${makes.map(m =>
     `<a class="chip" href="/katalog?marka=${encodeURIComponent(m.make)}">${esc(m.make)} <i>${m.n}</i></a>`).join('')}</div></section>` : ''}
-${(facets.groups || []).length ? `<section><details class="mfold gdet" open><summary>Grupe dijelova</summary><div class="gidx">${facets.groups.map((g, i) => `<a href="/dijelovi?grupa=${encodeURIComponent(g)}"><i>${i + 1}</i>${esc(g)}</a>`).join('')}</div></details></section>` : ''}
 <section><div class="sec-h"><h2>Nedavno dodano</h2><a href="/dijelovi">Svi dijelovi →</a></div>
   ${latest.length ? partsTable(latest) : '<p class="muted">Katalog se učitava, pokušaj ponovo za koji trenutak.</p>'}
 </section>
@@ -198,6 +198,31 @@ function treeHtml(tree, f, mk) {
   }).join('')}</div>`;
 }
 
+function resultsHtml({ rows, total, page, pages, f, heading, link, pager }) {
+  return `<div class="results" id="rez">
+  <h1 class="pg-h">${esc(heading)}</h1>
+  <div class="toolbar"><span class="count">${total.toLocaleString('de-DE')} ${total === 1 ? 'dio' : 'dijelova'}</span>
+    <span class="tb-r"><span class="vt"><em>Sortiraj</em>${link({ sort: '' }, 'Najnovije', !f.sort)}${link({ sort: 'cijena_asc' }, 'Cijena ↑', f.sort === 'cijena_asc')}${link({ sort: 'cijena_desc' }, 'Cijena ↓', f.sort === 'cijena_desc')}</span>
+    <span class="vt">${link({ prikaz: 'lista' }, 'Tabela', f.prikaz === 'lista')}${link({ prikaz: 'mreza' }, 'Mreža', f.prikaz === 'mreza')}</span></span></div>
+  ${rows.length ? (f.prikaz === 'mreza' ? `<div class="grid g3">${rows.map(card).join('')}</div>` : partsTable(rows, (page - 1) * cfg.pageSize)) + pager :
+    `<div class="empty"><p>Nema rezultata za ovaj izbor.</p><p><a class="btn" href="/kontakt">Pošalji upit za dio</a></p></div>`}
+</div>`;
+}
+
+// samo blok rezultata (za pretragu "uživo")
+function listFrag({ rows, total, page, pages, f, baseQuery }) {
+  const pageLink = n => '/dijelovi?' + baseQuery({ page: n });
+  const pager = pages > 1 ? `<nav class="pager" aria-label="Stranice">
+    ${page > 1 ? `<a href="${pageLink(page - 1)}" rel="prev">← Prethodna</a>` : '<span></span>'}
+    <span>Stranica ${page} od ${pages}</span>
+    ${page < pages ? `<a href="${pageLink(page + 1)}" rel="next">Sljedeća →</a>` : '<span></span>'}</nav>` : '';
+  const vehicle = [f.marka, f.model, f.vozilo].filter(Boolean).join(' ');
+  const what = f.tip ? nice(f.tip) : f.grupa || '';
+  const heading = [what, vehicle].filter(Boolean).join(' — ') || (f.q ? `„${f.q}“` : 'Svi dijelovi');
+  const link = (extra, text, on) => `<a href="/dijelovi?${baseQuery({ ...extra, page: 1 })}" class="${on ? 'on' : ''}">${text}</a>`;
+  return resultsHtml({ rows, total, page, pages, f, heading, link, pager });
+}
+
 function list({ rows, total, page, pages, f, facets, tree, baseQuery }) {
   const pageLink = n => '/dijelovi?' + baseQuery({ page: n });
   const pager = pages > 1 ? `<nav class="pager" aria-label="Stranice">
@@ -215,6 +240,7 @@ function list({ rows, total, page, pages, f, facets, tree, baseQuery }) {
   if (f.grupa) crumbs.push(`<a href="/dijelovi?${baseQuery({ tip: '', page: 1 })}">${esc(f.grupa)}</a>`);
   if (f.tip) crumbs.push(`<span>${esc(nice(f.tip))}</span>`);
   const link = (extra, text, on) => `<a href="/dijelovi?${baseQuery({ ...extra, page: 1 })}" class="${on ? 'on' : ''}">${text}</a>`;
+  const resultsBlock = resultsHtml({ rows, total, page, pages, f, heading, link, pager });
   const body = `
 <nav class="crumbs">${crumbs.join(' › ')}</nav>
 <details class="panel mfold"${active ? '' : ' open'}><summary>Pretraga — sva polja${active ? ` <em>${active} aktivno</em>` : ''}</summary>${searchForm(f, facets)}</details>
@@ -225,14 +251,7 @@ function list({ rows, total, page, pages, f, facets, tree, baseQuery }) {
     : `<h3>Vozilo</h3><p class="muted small">Odaberi vozilo da vidiš samo dijelove koji mu odgovaraju.</p><a class="btn sm" href="/katalog">Odaberi vozilo</a>`}</div>
   <details class="mfold" open><summary>Grupe dijelova</summary><div class="side-box"><h3 class="dsk">Grupe dijelova</h3>${treeHtml(tree, f, baseQuery)}</div></details>
 </aside>
-<div class="results" id="rez">
-  <h1 class="pg-h">${esc(heading)}</h1>
-  <div class="toolbar"><span class="count">${total.toLocaleString('de-DE')} ${total === 1 ? 'dio' : 'dijelova'}</span>
-    <span class="tb-r"><span class="vt"><em>Sortiraj</em>${link({ sort: '' }, 'Najnovije', !f.sort)}${link({ sort: 'cijena_asc' }, 'Cijena ↑', f.sort === 'cijena_asc')}${link({ sort: 'cijena_desc' }, 'Cijena ↓', f.sort === 'cijena_desc')}</span>
-    <span class="vt">${link({ prikaz: 'lista' }, 'Tabela', f.prikaz === 'lista')}${link({ prikaz: 'mreza' }, 'Mreža', f.prikaz === 'mreza')}</span></span></div>
-  ${rows.length ? (f.prikaz === 'mreza' ? `<div class="grid g3">${rows.map(card).join('')}</div>` : partsTable(rows, (page - 1) * cfg.pageSize)) + pager :
-    `<div class="empty"><p>Nema rezultata za ovaj izbor.</p><p><a class="btn" href="/kontakt">Pošalji upit za dio</a></p></div>`}
-</div>
+${resultsBlock}
 </div>`;
   const deep = Object.entries(f).some(([k, v]) => v && !['marka', 'model', 'grupa', 'tip', 'prikaz'].includes(k)) || f.prikaz === 'mreza';
   return layout({
@@ -394,4 +413,4 @@ function notFound() {
   return layout({ title: 'Stranica nije pronađena', noindex: true, body: `<div class="empty"><h1>Stranica nije pronađena</h1><p><a class="btn" href="/">Na početnu</a></p></div>` });
 }
 
-module.exports = { esc, slugify, nice, partTitle, partUrl, imgUrl, money, rowToPart, parseImgs, layout, home, list, catalog, detail, unavailable, cart, contact, notFound };
+module.exports = { listFrag, esc, slugify, nice, partTitle, partUrl, imgUrl, money, rowToPart, parseImgs, layout, home, list, catalog, detail, unavailable, cart, contact, notFound };
