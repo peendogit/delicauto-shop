@@ -51,7 +51,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <link rel="icon" href="/static/favicon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=13">
+<link rel="stylesheet" href="/static/style.css?v=14">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -70,7 +70,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=11" defer></script>
+<script src="/static/app.js?v=12" defer></script>
 </body></html>`;
 }
 
@@ -355,7 +355,8 @@ function detail(p) {
     ${inquiry}
   </section>
 </div>
-${specs ? `<section class="sheet"><h2>Specifikacija dijela</h2><div class="sheet-grid">${specs}</div></section>` : ''}`;
+${specs ? `<section class="sheet"><h2>Specifikacija dijela</h2><div class="sheet-grid">${specs}</div></section>` : ''}
+${mapSection('Gdje preuzeti ovaj dio', true)}`;
   const jsonld = {
     '@context': 'https://schema.org', '@type': 'Product', name: title,
     ...(imgs.length ? { image: imgs.slice(0, 5).map(f => cfg.siteUrl + imgUrl(f, 960)) } : {}),
@@ -409,10 +410,10 @@ function unavailable(id) {
 
 
 // Google mapa lokacije otpada (ispod kontakta)
-function mapSection() {
+function mapSection(title = 'Gdje se nalazimo', compact = false) {
   const q = cfg.mapQuery || [cfg.name, cfg.address || cfg.city].filter(Boolean).join(', ');
   const e = encodeURIComponent(q);
-  return `<section class="box map-box"><h2>Gdje se nalazimo</h2>
+  return `<section class="box map-box${compact ? ' compact' : ''}"><h2>${esc(title)}</h2>
   <p>${cfg.address ? esc(cfg.address) + ', ' : ''}${esc(cfg.city)}, Bosna i Hercegovina</p>
   <p class="map-act"><a class="btn" href="${esc(cfg.mapLink || 'https://www.google.com/maps/dir/?api=1&destination=' + e)}" target="_blank" rel="noopener">Navigacija u Google mapama</a></p>
   <div class="map-frame"><iframe title="Lokacija — ${esc(cfg.name)}" src="https://www.google.com/maps?q=${e}&hl=bs&z=15&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>
