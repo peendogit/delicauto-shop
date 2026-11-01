@@ -95,6 +95,16 @@
       var later = function () { clearTimeout(timer); timer = setTimeout(run, 250); };
       form.addEventListener('input', later);
       form.addEventListener('change', later);
+      // početna: "Poništi sve" samo prazni pretragu i sklanja rezultate, bez odlaska na drugu stranicu
+      var rs = form.querySelector('.reset');
+      if (live && rs) rs.addEventListener('click', function (e) {
+        e.preventDefault();
+        form.querySelectorAll('input:not([type=hidden]):not([type=submit]),select').forEach(function (el) { if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = ''; });
+        form.querySelectorAll('input[type=hidden]').forEach(function (h) { h.remove(); });
+        form.querySelectorAll('.ac').forEach(function (u) { u.hidden = true; });
+        seq++; clearTimeout(timer); live.innerHTML = '';
+        try { history.replaceState(null, '', location.pathname); } catch (er) { /* */ }
+      });
     }
     // prazna polja se ne šalju, da adresa ostane kratka
     form.addEventListener('submit', function () {
