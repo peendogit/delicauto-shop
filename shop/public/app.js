@@ -31,7 +31,7 @@
   }
   document.addEventListener('click', function (e) {
     var v = e.target.closest('[data-copy]');
-    if (v && copyText(v.getAttribute('data-copy'))) toast('Poruka kopirana — zalijepi je u Viber');
+    if (v && copyText(v.getAttribute('data-copy'))) toast('Poruka kopirana — ako se ne upiše sama u Viber, zalijepi je');
   });
 
   // dodaj u korpu
