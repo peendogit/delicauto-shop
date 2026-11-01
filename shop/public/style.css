@@ -323,3 +323,9 @@ details.gdet>summary{font-weight:700;font-size:1.05rem;padding:10px 0;cursor:poi
 
 #pwa-btn{position:fixed;left:12px;bottom:12px;z-index:50;background:#f5a300;color:#0f2a47;border:0;border-radius:24px;padding:11px 36px 11px 16px;font:600 14px Inter,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 #pwa-x{position:fixed;left:196px;bottom:20px;z-index:51;color:#0f2a47;font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
+
+.buy .cbtns .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 14px;font-size:.92rem}
+.buy .cbtns .btn .ic{flex:none}
+.buy .cbtns{max-width:none;margin-left:0}
+@media(max-width:480px){.buy .cbtns .btn{flex:1 1 100%}}
+.detail>*{min-width:0}.gal,.info{min-width:0;max-width:100%}
