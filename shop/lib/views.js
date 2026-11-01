@@ -414,8 +414,7 @@ function mapSection() {
   const e = encodeURIComponent(q);
   return `<section class="box map-box"><h2>Gdje se nalazimo</h2>
   <p>${cfg.address ? esc(cfg.address) + ', ' : ''}${esc(cfg.city)}, Bosna i Hercegovina</p>
-  <p class="map-act"><a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=${e}" target="_blank" rel="noopener">Navigacija</a>
-  <a class="btn ghost" href="https://www.google.com/maps/search/?api=1&query=${e}" target="_blank" rel="noopener">Otvori u Google mapama</a></p>
+  <p class="map-act"><a class="btn" href="${esc(cfg.mapLink || 'https://www.google.com/maps/dir/?api=1&destination=' + e)}" target="_blank" rel="noopener">Navigacija u Google mapama</a></p>
   <div class="map-frame"><iframe title="Lokacija — ${esc(cfg.name)}" src="https://www.google.com/maps?q=${e}&hl=bs&z=15&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>
 </section>`;
 }

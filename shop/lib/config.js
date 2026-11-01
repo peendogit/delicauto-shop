@@ -41,6 +41,7 @@ module.exports = {
   email: (e.SHOP_EMAIL || '').trim(),
   address: (e.SHOP_ADDRESS || '').trim(),
   mapQuery: (e.SHOP_MAP_QUERY || '').trim(),
+  mapLink: (e.SHOP_MAP_LINK || 'https://maps.app.goo.gl/YxhohNsrNt7pEarG6').trim(),
   adminUser: e.ADMIN_USER || 'admin',
   adminPass: e.ADMIN_PASS || '',
   tgToken: e.TELEGRAM_BOT_TOKEN || '',
