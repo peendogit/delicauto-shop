@@ -91,9 +91,22 @@ const distinctOf = (col, numeric) => cached('d:' + col, () => db.prepare(
 // ---- vozilo kucanjem: "A5" -> Audi A5 8T, Audi A5 8F ... ----
 const foldS = x => String(x || '').toLowerCase().replace(/đ/g, 'dj').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const compactS = x => foldS(x).replace(/[^a-z0-9]/g, '');
-const combos = () => cached('combos', () => db.prepare("SELECT make, model, COUNT(*) AS n FROM parts WHERE make <> '' AND model <> '' GROUP BY make, model").all()
-  .map(r => { const label = `${r.make} ${r.model}`; return { make: r.make, model: r.model, n: r.n, label, f: foldS(label), c: compactS(label), words: foldS(label).split(/[^a-z0-9]+/).filter(Boolean) }; }));
+const combos = () => cached('combos', () => {
+  // godišta modela: najraniji početak i najkasniji kraj iz oznaka "(07-11)" na vozilima
+  const yrs = new Map();
+  for (const v of db.prepare("SELECT make, model, vehicle FROM parts WHERE make <> '' AND model <> '' GROUP BY make, model, vehicle").all()) {
+    const m = /\((\d{2})\s*-\s*(\d{2})\)/.exec(v.vehicle || ''); if (!m) continue;
+    const k = v.make + '|' + v.model, y = yrs.get(k) || { a: 99, b: -1 };
+    const full = x => (Number(x) < 70 ? 2000 : 1900) + Number(x);
+    if (full(m[1]) < (y.a === 99 ? 9999 : full(y.a))) y.a = m[1];
+    if (full(m[2]) > (y.b === -1 ? 0 : full(y.b))) y.b = m[2];
+    yrs.set(k, y);
+  }
+  return db.prepare("SELECT make, model, COUNT(*) AS n FROM parts WHERE make <> '' AND model <> '' GROUP BY make, model").all()
+  .map(r => { const y = yrs.get(r.make + '|' + r.model), label = `${r.make} ${r.model}`; return { make: r.make, model: r.model, n: r.n, label, show: y ? `${label} (${y.a}-${y.b})` : label, f: foldS(label), c: compactS(label), words: foldS(label).split(/[^a-z0-9]+/).filter(Boolean) }; });
+});
 function matchCombos(text) {
+  text = String(text || '').replace(/\s*\(\s*\d{2}\s*-\s*\d{2}\s*\)\s*$/, '');
   const toks = foldS(text).split(/\s+/).filter(Boolean).slice(0, 5);
   if (!toks.length) return [];
   const exact = combos().filter(c => c.f === foldS(text).trim());
@@ -105,7 +118,7 @@ function matchCombos(text) {
 app.get('/api/vozila', (req, res) => {
   if (limited(req, res, 900)) return;
   res.setHeader('Cache-Control', 'no-store');
-  res.json(matchCombos(clean(req.query.q, 60)).slice(0, 30).map(c => c.label));
+  res.json(matchCombos(clean(req.query.q, 60)).slice(0, 30).map(c => c.show));
 });
 function facets(make, model) {
   return {
