@@ -316,9 +316,19 @@
         ul.appendChild(li);
       });
       ul.hidden = false;
+      // telefon: lista ide IZNAD polja (tastatura zaklanja prostor ispod), najbolji prijedlog je uz samo polje
+      var up = !window.matchMedia('(min-width:900px)').matches;
+      ul.classList.toggle('up', up);
+      if (up) {
+        var hd = document.querySelector('header.top'), hb = hd ? Math.max(0, hd.getBoundingClientRect().bottom) : 0;
+        var room = inp.getBoundingClientRect().top - hb - 24;
+        if (room < 170) { window.scrollBy(0, -(170 - room)); room = inp.getBoundingClientRect().top - hb - 24; }
+        ul.style.maxHeight = Math.max(120, Math.min(340, room)) + 'px';
+      } else ul.style.maxHeight = '';
     }
     inp.addEventListener('input', render);
     inp.addEventListener('focus', render);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { if (document.activeElement === inp && !ul.hidden) render(); });
     inp.addEventListener('blur', function () { setTimeout(function () { ul.hidden = true; }, 150); });
     inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') ul.hidden = true; });
   });
