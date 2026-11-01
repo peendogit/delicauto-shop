@@ -55,6 +55,7 @@
       sel.innerHTML = '<option value="">' + esc(ph) + '</option>' + items.map(function (x) { return '<option value="' + esc(x) + '">' + esc(x) + '</option>'; }).join('');
       sel.disabled = off;
     }
+    if (m && !md) m.addEventListener('change', function () { form.querySelectorAll('input[type=hidden][name=model],input[type=hidden][name=vozilo]').forEach(function (h) { h.remove(); }); });
     if (m && md && v) {
       m.addEventListener('change', function () {
         fill(md, [], 'Prvo odaberi marku', true); fill(v, [], 'Prvo odaberi model', true);

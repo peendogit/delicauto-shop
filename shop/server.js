@@ -489,7 +489,10 @@ function sameOrigin(req) {
   const o = req.headers.origin; if (!o) return true;
   try { return new URL(o).host === req.headers.host; } catch { return false; }
 }
-const fmtTs = t => new Date(t).toLocaleString('bs-BA', { timeZone: 'Europe/Sarajevo' });
+// datum: dd. mm. yyyy.  (vrijeme: dd. mm. yyyy. HH:mm)
+const fmtParts = t => Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Sarajevo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(t)).map(x => [x.type, x.value]));
+const fmtTs = t => { const p = fmtParts(t); return `${p.day}. ${p.month}. ${p.year}. ${p.hour}:${p.minute}`; };
+const fmtDay = d => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d)); return m ? `${m[3]}. ${m[2]}. ${m[1]}.` : String(d); };
 
 // ---- felne ----
 const rimFacets = () => cached('rimf', () => {
@@ -611,10 +614,10 @@ app.get('/admin/statistika', (req, res) => {
 <div class="stcards"><div><b>${r.today.visitors}</b><span>posjetilaca danas</span></div><div><b>${r.tot.visitors}</b><span>posjetilaca (${d} dana)</span></div><div><b>${r.tot.views}</b><span>pregleda stranica</span></div><div><b>${r.searches}</b><span>pretraga</span></div></div>
 <p class="muted small">Posjetilac se broji jednom dnevno (anonimni otisak, bez kolačića i bez čuvanja IP adrese). Botovi i admin se ne broje.</p>
 <h2>Posjete po danima</h2>
-${tbl(['Dan', 'Posjetilaca', 'Pregleda', ''], r.daily.slice().reverse().map(x => `<tr><td>${E(x.day)}</td><td>${x.visitors}</td><td>${x.views}</td><td>${bar(x.visitors, maxV)}</td></tr>`), 'Još nema posjeta.')}
+${tbl(['Dan', 'Posjetilaca', 'Pregleda', ''], r.daily.slice().reverse().map(x => `<tr><td>${fmtDay(x.day)}</td><td>${x.visitors}</td><td>${x.views}</td><td>${bar(x.visitors, maxV)}</td></tr>`), 'Još nema posjeta.')}
 <h2>Šta tražimo a nemamo (nula rezultata)</h2>
 <p class="muted small">Ovo je lista za nabavku: pretrage koje nisu našle ništa, poredane po broju traženja.</p>
-${tbl(['Traženo', 'Vozilo', 'Puta', 'Zadnji put'], r.missing.map(x => `<tr><td><b>${E(x.term || '—')}</b></td><td>${E(x.vehicle)}</td><td>${x.n}</td><td>${E(x.last)}</td></tr>`), 'Nema pretraga bez rezultata.')}
+${tbl(['Traženo', 'Vozilo', 'Puta', 'Zadnji put'], r.missing.map(x => `<tr><td><b>${E(x.term || '—')}</b></td><td>${E(x.vehicle)}</td><td>${x.n}</td><td>${fmtDay(x.last)}</td></tr>`), 'Nema pretraga bez rezultata.')}
 <h2>Najčešće pretrage</h2>
 ${tbl(['Pojam', 'Puta', 'Rezultata'], r.top.map(x => `<tr><td>${E(x.term)}</td><td>${x.n}</td><td>${x.maxres === 0 ? '<b style="color:var(--err)">0</b>' : x.maxres}</td></tr>`), 'Još nema pretraga.')}
 <h2>Najtraženija vozila</h2>

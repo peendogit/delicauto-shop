@@ -54,7 +54,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=33">
+<link rel="stylesheet" href="/static/style.css?v=34">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -73,7 +73,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/felne">Felne</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=24" defer></script>
+<script src="/static/app.js?v=25" defer></script>
 </body></html>`;
 }
 
@@ -131,50 +131,30 @@ const vmField = f => `<label class="f"><span>Vozilo (kucaj model)</span><input n
 const tipField = (f, fx) => `<label class="f"><span>Tip dijela</span><input name="tip" value="${esc(f.tip && nice(f.tip))}" list="dl-tip" placeholder="kucaj: npr. farovi, branik…" autocomplete="off"></label>
     <datalist id="dl-tip">${(fx.types || []).map(t => `<option value="${esc(nice(t))}">`).join('')}</datalist>`;
 
-// kompaktna pretraga za početnu: tip dijela, vozilo (kucanjem), kataloški broj, na dnu interna šifra
-function searchCompact(f, fx) {
-  return `<form class="sf sf-compact" method="get" action="/dijelovi">
-  ${f.q ? `<input type="hidden" name="q" value="${esc(f.q)}">` : ''}
-  <div class="sf-grid">
-    ${tipField(f, fx)}
-    ${vmField(f)}
-    ${inp('katbr', 'Kataloški broj', f.katbr, 'npr. 5G1941005')}
-    ${inp('sifra', 'Interna šifra', f.sifra)}
-  </div>
-  <div class="sf-actions"><button class="btn" type="submit">Traži</button><a class="reset" href="/dijelovi">Poništi sve</a></div>
-</form>`;
-}
-
 function searchForm(f, fx) {
+  const adv = ['marka', 'karoserija', 'pogon', 'strana', 'sifra', 'gorivo', 'ccm', 'kw', 'kodmot', 'kodmj', 'mjenjac', 'brzina'].some(k => f[k]);
   return `<form class="sf" method="get" action="/dijelovi">
   ${f.q ? `<input type="hidden" name="q" value="${esc(f.q)}">` : ''}
-  <fieldset class="fs"><legend><i>1</i> Pretraga</legend><div class="sf-grid">
-    ${tipField(f, fx)}
-    ${vmField(f)}
+  ${f.model ? `<input type="hidden" name="model" value="${esc(f.model)}">` : ''}${f.vozilo ? `<input type="hidden" name="vozilo" value="${esc(f.vozilo)}">` : ''}
+  <div class="sf-grid sf-main">
     ${inp('katbr', 'Kataloški broj', f.katbr, 'npr. 5G1941005')}
-  </div></fieldset>
-  <fieldset class="fs"><legend><i>2</i> Vozilo</legend><div class="sf-grid">
+    ${tipField(f, fx)}
+    ${vmField(f).replace('Vozilo (kucaj model)', 'Model')}
+  </div>
+  <details class="adv"${adv ? ' open' : ''}><summary>Detaljna pretraga${adv ? ' <em>aktivno</em>' : ''}</summary><div class="sf-grid">
     ${sel('marka', 'Marka', fx.makes, f.marka)}
-    ${sel('model', 'Model', fx.models, f.model, { disabled: !f.marka, ph: f.marka ? 'Sve' : 'Prvo odaberi marku' })}
-    ${sel('vozilo', 'Vozilo', fx.vehicles, f.vozilo, { disabled: !f.model, ph: f.model ? 'Sve' : 'Prvo odaberi model' })}
     ${sel('karoserija', 'Tip karoserije', fx.bodies, f.karoserija)}
     ${sel('pogon', 'Pogon', fx.drives, f.pogon)}
-  </div></fieldset>
-  <fieldset class="fs"><legend><i>3</i> Dio</legend><div class="sf-grid">
-    ${sel('grupa', 'Grupa', fx.groups, f.grupa)}
     ${sel('strana', 'Strana', fx.sides, f.strana)}
-    <label class="f"><span>Cijena</span><select name="cijena"><option value="">Sve</option><option value="1"${f.cijena ? ' selected' : ''}>Samo sa cijenom</option></select></label>
-  </div></fieldset>
-  <fieldset class="fs"><legend><i>4</i> Motor i mjenjač</legend><div class="sf-grid">
+    ${inp('sifra', 'Interna šifra', f.sifra)}
     ${sel('gorivo', 'Gorivo', fx.fuels, f.gorivo)}
     ${sel('ccm', 'Kubikaža (ccm)', fx.displacements, f.ccm)}
     ${inp('kw', 'Snaga (kW)', f.kw, '', 'inputmode="numeric"')}
     ${inp('kodmot', 'Kod motora', f.kodmot)}
+    ${inp('kodmj', 'Kod mjenjača', f.kodmj)}
     ${sel('mjenjac', 'Mjenjač', fx.gearboxes, f.mjenjac)}
     ${sel('brzina', 'Broj brzina', fx.gears, f.brzina)}
-    ${inp('kodmj', 'Kod mjenjača', f.kodmj)}
-  </div></fieldset>
-  <div class="sf-grid sf-last">${inp('sifra', 'Interna šifra', f.sifra)}</div>
+  </div></details>
   <div class="sf-actions"><button class="btn" type="submit">Traži</button><a class="reset" href="/dijelovi">Poništi sve</a></div>
 </form>`;
 }
@@ -209,7 +189,7 @@ function home({ makes, latest, total, facets, f }) {
 <section class="panel home-panel">
   <div class="panel-h"><h1>Katalog polovnih auto dijelova</h1>
     <span class="muted">${total ? `<b>${total.toLocaleString('de-DE')}</b> dijelova na stanju` : 'Dijelovi s vozila iz našeg otpada'}</span></div>
-  ${searchCompact(f, facets)}
+  ${searchForm(f, facets)}
 </section>
 <div id="live" aria-live="polite"></div>
 <section><div class="sec-h"><h2>Nedavno dodano</h2><a href="/dijelovi">Svi dijelovi →</a></div>
