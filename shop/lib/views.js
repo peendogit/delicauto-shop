@@ -70,7 +70,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=10" defer></script>
+<script src="/static/app.js?v=11" defer></script>
 </body></html>`;
 }
 
@@ -109,8 +109,8 @@ const FILTER_KEYS = ['q', 'katbr', 'tip', 'sifra', 'grupa', 'marka', 'model', 'v
 
 function searchForm(f, fx) {
   return `<form class="sf" method="get" action="/dijelovi">
+  ${f.q ? `<input type="hidden" name="q" value="${esc(f.q)}">` : ''}
   <fieldset class="fs"><legend><i>1</i> Pretraga po broju</legend><div class="sf-grid">
-    ${inp('q', 'Brza pretraga', f.q, 'dio, model, broj…')}
     ${inp('katbr', 'Kataloški broj', f.katbr, 'npr. 5G1941005')}
     ${inp('sifra', 'Interna šifra', f.sifra)}
   </div></fieldset>
