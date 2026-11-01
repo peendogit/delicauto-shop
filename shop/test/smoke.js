@@ -160,11 +160,7 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
     const bad = await fetch(S('/admin/sync'), { method: 'POST', redirect: 'manual', headers: { authorization: basic, origin: 'https://evil.example' } });
     ok(bad.status === 403, 'admin POST s tuđeg origina odbijen (CSRF)');
 
-    console.log('Upit');
-    o = await post('/api/upit', { name: 'Marko', phone: '1', message: 'x' }); ok(o.status === 400, 'neispravan telefon odbijen');
-    o = await post('/api/upit', { name: 'Marko', phone: '065 111 222', partId: 2, message: 'Koja cijena?' }); ok(o.status === 200, 'upit za dio bez cijene prihvaćen');
-    o = await post('/api/upit', { name: 'Bot', phone: '065 111 222', hp: 'spam' }); ok(o.status === 200, 'honeypot tiho prihvaćen');
-    r = await fetch(S('/admin'), { headers: { authorization: basic } }); ok(!(await r.text()).includes('Koja cijena?'), 'admin više ne prikazuje upite');
+        r = await fetch(S('/admin'), { headers: { authorization: basic } }); ok(!(await r.text()).includes('Koja cijena?'), 'admin više ne prikazuje upite');
 
     console.log('Otkup vozila');
     r = await get('/otkup'); ok(r.status === 200 && r.text.includes('otkup-form') && r.text.includes('Otkup'), 'stranica otkupa');

@@ -336,22 +336,6 @@ app.get('/api/dijelovi', (req, res) => {
   }));
 });
 
-app.post('/api/upit', async (req, res) => {
-  if (limited(req, res, 6)) return;
-  const b = req.body || {};
-  if (b.hp) return res.json({ ok: true });
-  const name = clean(b.name, 80), phone = clean(b.phone, 40), message = clean(b.message, 1000);
-  if (name.length < 2) return res.json({ error: 'Upiši ime.' }, 400);
-  if (digits(phone).length < 6) return res.json({ error: 'Upiši ispravan broj telefona.' }, 400);
-  let partId = parseInt(b.partId, 10) || null, partTitle = null;
-  if (partId) { const p = getPart(partId); partTitle = p ? `${V.partTitle(p)}${p.internal ? ' [' + p.internal + ']' : ''}` : `#${partId}`; }
-  if (!partId && message.length < 3) return res.json({ error: 'Napiši koji dio tražiš.' }, 400);
-  db.prepare('INSERT INTO inquiries(part_id, part_title, name, phone, email, message, created_at) VALUES (?,?,?,?,?,?,?)')
-    .run(partId, partTitle, name, phone, clean(b.email, 120) || null, message || null, now());
-  notify(`📩 Novi upit\n${name} · ${phone}\n${partTitle ? 'Dio: ' + partTitle + '\n' : ''}${message}\n${cfg.siteUrl}/admin`);
-  res.json({ ok: true });
-});
-
 app.post('/api/narudzba', async (req, res) => {
   if (limited(req, res, 5)) return;
   const b = req.body || {};

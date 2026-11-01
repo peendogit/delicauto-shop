@@ -54,7 +54,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=27">
+<link rel="stylesheet" href="/static/style.css?v=28">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -201,8 +201,8 @@ function home({ makes, latest, total, facets, f }) {
   <p>Prodaješ vozilo u kvaru ili nakon udesa? Pošalji slike i lokaciju, javimo se brzo s ponudom.</p>
   <a class="btn" href="/otkup">Pošalji vozilo za otkup</a></section>
 <section class="cta"><h2>Ne nalaziš dio?</h2>
-  <p>Pošalji nam upit s modelom i godištem vozila, javit ćemo se čim prije.</p>
-  <a class="btn" href="/kontakt">Pošalji upit</a></section>`;
+  <p>Pozovi nas ili nam piši na Viber i WhatsApp s modelom i godištem vozila.</p>
+  ${contactBtnsMsg('Zdravo, tražim dio koji nisam našao na sajtu.', '')}</section>`;
   const jsonld = {
     '@context': 'https://schema.org', '@type': 'AutoPartsStore', name: cfg.name, url: cfg.siteUrl,
     address: { '@type': 'PostalAddress', ...(cfg.address ? { streetAddress: cfg.address } : {}), addressLocality: cfg.city, addressCountry: 'BA' },
@@ -233,7 +233,7 @@ function resultsHtml({ rows, total, page, pages, f, heading, link, pager, yard }
     <span class="tb-r"><span class="vt"><em>Sortiraj</em>${link({ sort: '' }, 'Najnovije', !f.sort)}${link({ sort: 'cijena_asc' }, 'Cijena ↑', f.sort === 'cijena_asc')}${link({ sort: 'cijena_desc' }, 'Cijena ↓', f.sort === 'cijena_desc')}</span>
     <span class="vt">${link({ prikaz: 'lista' }, 'Tabela', f.prikaz === 'lista')}${link({ prikaz: 'mreza' }, 'Mreža', f.prikaz === 'mreza')}</span></span></div>
   ${rows.length ? (f.prikaz === 'mreza' ? `<div class="grid g3">${rows.map(card).join('')}</div>` : partsTable(rows, (page - 1) * cfg.pageSize)) + pager :
-    `<div class="empty"><p>Nema rezultata za ovaj izbor.</p><p><a class="btn" href="/kontakt">Pošalji upit za dio</a></p></div>`}
+    `<div class="empty"><p>Nema rezultata za ovaj izbor.</p><p>Pozovi nas, možda imamo dio koji još nije u bazi.</p>${contactBtnsMsg('Zdravo, tražim dio koji nisam našao na sajtu.')}</div>`}
   ${yardNotice(yard)}
 </div>`;
 }
@@ -493,8 +493,8 @@ function buyout() {
 function unavailable(id) {
   return layout({
     title: 'Dio više nije dostupan', path: '/dio/' + id, noindex: true,
-    body: `<div class="empty"><h1>Ovaj dio više nije dostupan</h1><p>Vjerovatno je prodan. Pogledaj slične dijelove ili nam pošalji upit.</p>
-    <p><a class="btn" href="/dijelovi">Pogledaj dijelove</a> <a class="btn ghost" href="/kontakt">Pošalji upit</a></p></div>`,
+    body: `<div class="empty"><h1>Ovaj dio više nije dostupan</h1><p>Vjerovatno je prodan. Pogledaj slične dijelove ili nas pozovi.</p>
+    <p><a class="btn" href="/dijelovi">Pogledaj dijelove</a> <a class="btn ghost" href="/kontakt">Kontakt</a></p></div>`,
   });
 }
 
@@ -513,24 +513,15 @@ function mapSection(title = 'Gdje se nalazimo', compact = false) {
 function contact() {
   const phone = cfg.phoneTel;
   return layout({
-    title: 'Kontakt i upit', path: '/kontakt',
-    desc: `Kontakt ${cfg.name}, ${cfg.city}. Pošalji upit za auto dio.`,
-    body: `<h1 class="pg-h">Kontakt i upit</h1>
+    title: 'Kontakt', path: '/kontakt',
+    desc: `Kontakt ${cfg.name}, ${cfg.city}. Radno vrijeme, adresa i telefon.`,
+    body: `<h1 class="pg-h">Kontakt</h1>
 <div class="two">
-  <form class="box inq" data-ajax action="/api/upit" method="post">
-    <h2>Pošalji upit</h2>
-    <input class="hp" type="text" name="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-    <label class="f"><span>Ime</span><input name="name" required maxlength="80" autocomplete="name"></label>
-    <label class="f"><span>Telefon</span><input name="phone" type="tel" required maxlength="40" autocomplete="tel"></label>
-    <label class="f"><span>Koji dio tražiš? (marka, model, godište)</span><textarea name="message" rows="5" required maxlength="1000"></textarea></label>
-    <button type="submit" class="btn">Pošalji upit</button>
-    <p class="form-msg" role="status"></p>
-  </form>
   <div class="box"><h2>${esc(cfg.name)}</h2>
     <p>${cfg.address ? esc(cfg.address) + '<br>' : ''}${esc(cfg.city)}, Bosna i Hercegovina</p>
     <p class="hours"><b>Radno vrijeme:</b> ${esc(cfg.hours)}</p>
     ${phone ? `<p><a class="btn ghost" href="tel:${esc(phone)}">${esc(cfg.phone)}</a></p>` : ''}
-    ${cfg.viber ? `<p><a class="btn ghost" href="viber://chat?number=${esc(encodeURIComponent(cfg.viber))}">Viber</a></p>` : ''}
+    <p>${contactBtnsMsg('Zdravo, imam pitanje.', '')}</p>
     ${cfg.email ? `<p><a href="mailto:${esc(cfg.email)}">${esc(cfg.email)}</a></p>` : ''}
   </div>
 </div>
