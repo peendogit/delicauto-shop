@@ -26,7 +26,8 @@ function createApp() {
     const u = new URL(req.url, 'http://localhost');
     req.path = u.pathname;
     req.query = Object.fromEntries(u.searchParams);
-    req.ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+    // IP: nginx postavlja X-Real-IP iz stvarne veze (klijent ga ne može lažirati); X-Forwarded-For se ne vjeruje
+    req.ip = String((req.socket.remoteAddress || '').replace(/^::ffff:/, '') === '127.0.0.1' || req.socket.remoteAddress === '::1' ? (req.headers['x-real-ip'] || req.socket.remoteAddress) : req.socket.remoteAddress || '').trim();
     res.status = (c) => { res.statusCode = c; return res; };
     res.send = (body, type) => {
       if (type) res.setHeader('Content-Type', type);
@@ -60,6 +61,9 @@ function createApp() {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'");
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+    if (req.headers['x-forwarded-proto'] === 'https') res.setHeader('Strict-Transport-Security', 'max-age=15552000');
     try {
       for (const mw of mws) { if (await mw(req, res) === false || res.writableEnded) return; }
       const method = req.method === 'HEAD' ? 'GET' : req.method;
@@ -90,7 +94,7 @@ function createApp() {
     use: (fn) => mws.push(fn),
     get: (p, ...f) => add('GET', p, ...f),
     post: (p, ...f) => add('POST', p, ...f),
-    listen: (port, cb) => server.listen(port, cb),
+    listen: (port, cb) => server.listen(port, process.env.HOST || '127.0.0.1', cb),
     notFound: null, onError: null,
   };
   return app;

@@ -31,7 +31,7 @@ function limited(req, res, max = 8, windowMs = 10 * 60 * 1000) {
   if (arr.length > max) { res.json({ error: 'Previše zahtjeva, pokušaj malo kasnije.' }, 429); return true; }
   return false;
 }
-setInterval(() => { const t = now(); for (const [k, v] of hits) if (!v.some(x => t - x < 600000)) hits.delete(k); }, 600000).unref();
+setInterval(() => { const t = now(); for (const [k, v] of hits) if (!v.some(x => t - x < 1000000)) hits.delete(k); }, 600000).unref();
 
 const REF_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function makeRef() {
@@ -429,8 +429,7 @@ app.get('/sitemap-dijelovi-:n.xml', (req, res) => {
   res.send(xml(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${rows.map(p => `<url><loc>${V.esc(cfg.siteUrl + V.partUrl(p))}</loc></url>`).join('')}</urlset>`), 'application/xml; charset=utf-8');
 });
 
-app.get('/health', (req, res) => res.json({ ok: true, driver: db.driver, sharp: !!sharp,
-  parts: db.prepare('SELECT COUNT(*) AS n FROM parts').get().n, sync: sync.status }));
+app.get('/health', (req, res) => res.json({ ok: true, parts: db.prepare('SELECT COUNT(*) AS n FROM parts').get().n }));
 
 // ---------- admin ----------
 function adminAuth(req, res) {
@@ -438,7 +437,10 @@ function adminAuth(req, res) {
   const h = String(req.headers.authorization || '');
   const [u, ...pw] = Buffer.from(h.replace(/^Basic /, ''), 'base64').toString().split(':');
   const hash = s => crypto.createHash('sha256').update(String(s)).digest();
+  const t = now(), fk = 'adminfail|' + req.ip, fails = (hits.get(fk) || []).filter(x => t - x < 15 * 60 * 1000);
+  if (fails.length >= 8) { res.html('Previše pogrešnih pokušaja. Pokušaj za 15 minuta.', 429); return false; }
   if (h.startsWith('Basic ') && crypto.timingSafeEqual(hash(u), hash(cfg.adminUser)) && crypto.timingSafeEqual(hash(pw.join(':')), hash(cfg.adminPass))) return true;
+  if (h) { fails.push(t); hits.set(fk, fails); }
   res.setHeader('WWW-Authenticate', 'Basic realm="Delic admin", charset="UTF-8"');
   res.html('Potrebna prijava', 401); return false;
 }
@@ -479,9 +481,13 @@ app.get('/felna/:slug', (req, res) => {
 
 // ---- otkup vozila: formular sa slikama; ponuda ide na mail, u admin i na Telegram ----
 const OTKUP_DIR = path.join(cfg.dataDir, 'otkup');
+const otkupDay = { d: '', n: 0 };
 app.get('/otkup', (req, res) => res.html(V.buyout()));
 app.post('/api/otkup', async (req, res) => {
   if (limited(req, res, 4)) return;
+  const day = new Date().toDateString();
+  if (otkupDay.d !== day) { otkupDay.d = day; otkupDay.n = 0; }
+  if (++otkupDay.n > 40) return res.json({ error: 'Previše zahtjeva danas, pozovi nas na telefon.' }, 429);
   const b = req.body || {};
   if (b.hp) return res.json({ ok: true });
   const name = clean(b.name, 80), phone = clean(b.phone, 40), location = clean(b.location, 120);
@@ -593,6 +599,7 @@ app.notFound = (req, res) => (req.path.startsWith('/api/') ? res.json({ error: '
 app.onError = (err, req, res, status) => (req.path.startsWith('/api/') ? res.json({ error: status === 500 ? 'interna greška' : err.message }, status)
   : res.html(V.layout({ title: 'Greška', noindex: true, body: '<div class="empty"><h1>Došlo je do greške</h1><p><a class="btn" href="/">Na početnu</a></p></div>' }), status));
 
+if (cfg.adminPass && cfg.adminPass.length < 10) console.warn('[sigurnost] ADMIN_PASS je kratak — koristi bar 10 znakova');
 app.listen(cfg.port, () => {
   console.log(`[shop] ${cfg.name} — http://localhost:${cfg.port}  (sqlite: ${db.driver}, sharp: ${sharp ? 'da' : 'ne'})`);
   sync.start();
