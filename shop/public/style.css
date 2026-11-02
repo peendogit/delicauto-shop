@@ -397,3 +397,4 @@ details.faq{border-top:1px solid var(--line);padding:8px 0}details.faq summary{c
 .arrived .chips{display:flex;flex-wrap:wrap;gap:8px}
 .arrived .chip{display:flex;flex-direction:column;padding:8px 12px;border:1px solid var(--line,#d6dbe1);border-radius:10px;text-decoration:none;color:inherit;min-width:140px}
 .arrived .chip span{font-size:.78rem;opacity:.7}
+.top-search button.ico-s{display:inline-flex;align-items:center;justify-content:center;padding-left:14px;padding-right:14px}
