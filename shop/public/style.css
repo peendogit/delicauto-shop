@@ -382,3 +382,7 @@ details.otold>summary{cursor:pointer;padding:11px 12px;font-weight:600;color:#55
 details.otold form{padding:0 10px 12px}
 button.danger{background:#fff;color:#b3261e;border:1px solid #b3261e;border-radius:5px;padding:7px 12px;cursor:pointer}
 .acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+
+.soc{display:flex;gap:12px;padding-top:6px;padding-bottom:22px}
+.soc-i{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.soc-i:hover{background:rgba(255,255,255,.22);text-decoration:none}.soc-i .olx{font-size:.8rem;letter-spacing:.02em}

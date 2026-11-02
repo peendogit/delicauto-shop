@@ -54,7 +54,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=36">
+<link rel="stylesheet" href="/static/style.css?v=37">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -70,11 +70,23 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
 <main class="wrap">${body}</main>
 <footer class="foot"><div class="wrap foot-in">
   <div><img class="foot-logo" src="/static/logo.png" alt="Delić" width="158" height="59" loading="lazy"><br><b>${esc(cfg.name)}</b><br>${cfg.address ? esc(cfg.address) + '<br>' : ''}${esc(cfg.city)}, Bosna i Hercegovina${contact ? '<br>' + contact : ''}<br><br><b>Radno vrijeme</b><br>${cfg.hours.map(esc).join('<br>')}</div>
-  <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/felne">Felne</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
-  <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
-</div></footer>
-<script src="/static/app.js?v=28" defer></script>
+  <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/felne">Felne</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt</a></div>
+  <div class="muted small">Polovni dijelovi s vozila iz našeg otpada.</div>
+</div>
+${socials()}</footer>
+<script src="/static/app.js?v=29" defer></script>
 </body></html>`;
+}
+
+// društvene mreže u podnožju (prikazuju se samo one kojima je podešen link)
+function socials() {
+  const L = cfg.social, items = [
+    ['facebook', 'Facebook', '<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2h-4v-7h2.400l.4-3H15V9.300c0-.9.300-1.500 1.600-1.500H18V5.100c-.3 0-1.200-.1-2.200-.1-2.300 0-3.800 1.400-3.800 3.900V11H9.500v3H12v7H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>'],
+    ['instagram', 'Instagram', '<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M7.500 3h9A4.500 4.500 0 0121 7.500v9a4.500 4.500 0 01-4.500 4.500h-9A4.500 4.500 0 013 16.500v-9A4.500 4.500 0 017.500 3zm0 1.800A2.700 2.700 0 004.800 7.500v9a2.700 2.700 0 002.700 2.700h9a2.700 2.700 0 002.700-2.700v-9a2.700 2.700 0 00-2.700-2.700zM12 7.500a4.500 4.500 0 110 9 4.500 4.500 0 010-9zm0 1.800a2.700 2.700 0 100 5.400 2.700 2.700 0 000-5.400zm5-2.800a1 1 0 110 2 1 1 0 010-2z"/></svg>'],
+    ['olx', 'OLX', '<b class="olx">OLX</b>'],
+  ].filter(x => L[x[0]]);
+  if (!items.length) return '';
+  return `<div class="wrap soc">${items.map(([k, name, svg]) => `<a class="soc-i" href="${esc(L[k])}" target="_blank" rel="noopener" aria-label="${name}" title="${name}">${svg}</a>`).join('')}</div>`;
 }
 
 function card(p) {
