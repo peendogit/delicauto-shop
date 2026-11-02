@@ -389,3 +389,5 @@ button.danger{background:#fff;color:#b3261e;border:1px solid #b3261e;border-radi
 
 .seo-text h2{font-size:1.1rem;margin:1.2rem 0 .4rem}.seo-text p,.seo-text li{line-height:1.55}.seo-text ul,.seo-text ol{padding-left:1.2rem}
 details.faq{border-top:1px solid var(--line);padding:8px 0}details.faq summary{cursor:pointer;font-weight:600}details.faq p{margin:.4rem 0 0}
+
+.didyou{background:#fff8e6;border:1px solid #f5d27a;border-radius:6px;padding:8px 12px;margin:6px 0 10px}.didyou span{color:#667}

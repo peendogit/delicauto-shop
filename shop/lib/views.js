@@ -54,7 +54,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=38">
+<link rel="stylesheet" href="/static/style.css?v=39">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -239,9 +239,10 @@ function treeHtml(tree, f, mk) {
   }).join('')}</div>`;
 }
 
-function resultsHtml({ rows, total, page, pages, f, heading, link, pager, yard }) {
+function resultsHtml({ rows, total, page, pages, f, heading, link, pager, yard, note }) {
   return `<div class="results" id="rez">
   <h1 class="pg-h">${esc(heading)}</h1>
+  ${note ? `<p class="didyou">Prikazujem rezultate za <b>${esc(note.to)}</b> <span>(tražili ste „${esc(note.from)}“)</span></p>` : ''}
   <div class="toolbar"><span class="count">${total.toLocaleString('de-DE')} ${total === 1 ? 'dio' : 'dijelova'}</span>
     <span class="tb-r"><span class="vt"><em>Sortiraj</em>${link({ sort: '' }, 'Najnovije', !f.sort)}${link({ sort: 'cijena_asc' }, 'Cijena ↑', f.sort === 'cijena_asc')}${link({ sort: 'cijena_desc' }, 'Cijena ↓', f.sort === 'cijena_desc')}</span>
     <span class="vt">${link({ prikaz: 'lista' }, 'Tabela', f.prikaz === 'lista')}${link({ prikaz: 'mreza' }, 'Mreža', f.prikaz === 'mreza')}</span></span></div>
@@ -252,7 +253,7 @@ function resultsHtml({ rows, total, page, pages, f, heading, link, pager, yard }
 }
 
 // samo blok rezultata (za pretragu "uživo")
-function listFrag({ rows, total, page, pages, f, baseQuery, yard }) {
+function listFrag({ rows, total, page, pages, f, baseQuery, yard, note }) {
   const pageLink = n => '/dijelovi?' + baseQuery({ page: n });
   const pager = pages > 1 ? `<nav class="pager" aria-label="Stranice">
     ${page > 1 ? `<a href="${pageLink(page - 1)}" rel="prev">← Prethodna</a>` : '<span></span>'}
@@ -262,10 +263,10 @@ function listFrag({ rows, total, page, pages, f, baseQuery, yard }) {
   const what = f.tip ? nice(f.tip) : f.grupa || '';
   const heading = [what, vehicle].filter(Boolean).join(' — ') || (f.q ? `„${f.q}“` : 'Svi dijelovi');
   const link = (extra, text, on) => `<a href="/dijelovi?${baseQuery({ ...extra, page: 1 })}" class="${on ? 'on' : ''}">${text}</a>`;
-  return resultsHtml({ rows, total, page, pages, f, heading, link, pager, yard });
+  return resultsHtml({ rows, total, page, pages, f, heading, link, pager, yard, note });
 }
 
-function list({ rows, total, page, pages, f, facets, tree, baseQuery, yard }) {
+function list({ rows, total, page, pages, f, facets, tree, baseQuery, yard, note }) {
   const pageLink = n => '/dijelovi?' + baseQuery({ page: n });
   const pager = pages > 1 ? `<nav class="pager" aria-label="Stranice">
     ${page > 1 ? `<a href="${pageLink(page - 1)}" rel="prev">← Prethodna</a>` : '<span></span>'}
@@ -282,7 +283,7 @@ function list({ rows, total, page, pages, f, facets, tree, baseQuery, yard }) {
   if (f.grupa) crumbs.push(`<a href="/dijelovi?${baseQuery({ tip: '', page: 1 })}">${esc(f.grupa)}</a>`);
   if (f.tip) crumbs.push(`<span>${esc(nice(f.tip))}</span>`);
   const link = (extra, text, on) => `<a href="/dijelovi?${baseQuery({ ...extra, page: 1 })}" class="${on ? 'on' : ''}">${text}</a>`;
-  const resultsBlock = resultsHtml({ rows, total, page, pages, f, heading, link, pager, yard });
+  const resultsBlock = resultsHtml({ rows, total, page, pages, f, heading, link, pager, yard, note });
   const body = `
 <nav class="crumbs">${crumbs.join(' › ')}</nav>
 <details class="panel mfold"${active ? '' : ' open'}><summary>Pretraga — sva polja${active ? ` <em>${active} aktivno</em>` : ''}</summary>${searchForm(f, facets)}</details>

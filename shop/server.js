@@ -10,6 +10,7 @@ const { makeSync } = require('./lib/sync');
 const { notify, notifyPhotos } = require('./lib/notify');
 const { sendMail } = require('./lib/mail');
 const V = require('./lib/views');
+const smart = require('./lib/smart');
 const { makeStats } = require('./lib/stats');
 
 let sharp = null;
@@ -114,7 +115,13 @@ function matchCombos(text) {
   const all = combos().filter(c => !yrs || c.yrs === yrs);
   const exact = all.filter(c => c.f === foldS(text).trim());
   if (exact.length) return exact.sort((a, b) => a.yrs.localeCompare(b.yrs));
-  const hit = all.filter(c => toks.every(t => c.words.some(w => w.startsWith(t.replace(/[^a-z0-9]/g, ''))) || (compactS(t).length >= 3 && c.c.includes(compactS(t)))));
+  const match = tk => all.filter(c => tk.every(t => c.words.some(w => w.startsWith(t.replace(/[^a-z0-9]/g, ''))) || (compactS(t).length >= 3 && c.c.includes(compactS(t)))));
+  let hit = match(toks);
+  if (!hit.length) { // slovne greške u nazivu vozila (npr. "pasat" -> Passat)
+    const cv = smart.makeVocab(all.map(c => c.base));
+    const fixed = toks.map(t => smart.correct(t, cv) || t);
+    hit = match(fixed);
+  }
   const t0 = toks[0];
   return hit.sort((a, b) => ((b.f.startsWith(t0) ? 1 : 0) - (a.f.startsWith(t0) ? 1 : 0)) || ((b.words.includes(t0) ? 1 : 0) - (a.words.includes(t0) ? 1 : 0)) || (a.base === b.base ? a.yrs.localeCompare(b.yrs) : b.n - a.n));
 }
@@ -136,6 +143,50 @@ function facets(make, model) {
 }
 
 // ---------- pretraga ----------
+// vokabular riječi (tip dijela, marka, model) za ispravke i sinonime
+const vocab = () => cached('vocab', () => smart.makeVocab([...distinctOf('type'), ...makesList().map(m => m.make), ...db.prepare("SELECT DISTINCT model FROM parts WHERE model <> ''").all().map(r => r.model)]));
+const ftsHas = m => { try { return !!db.prepare('SELECT 1 FROM parts_fts WHERE parts_fts MATCH ? LIMIT 1').get(m); } catch { return false; } };
+// slobodni tekst: pokušaj 1 = tačno + množina + sinonimi; pokušaj 2 = uz ispravku slovnih grešaka
+function smartFts(q) {
+  const raw = clean(q, 100);
+  if (!raw) return { m: null };
+  const terms = raw.split(/\s+/).map(t => t.replace(/[^\p{L}\p{N}]/gu, '')).filter(Boolean).slice(0, 8);
+  if (!terms.length) return { m: null };
+  const build = fuzzy => {
+    const fixes = [];
+    const parts = terms.map(t => {
+      const r = smart.resolve(t, vocab(), fuzzy);
+      if (r.fixed) fixes.push([t, r.fixed]);
+      const alts = [...new Set([`"${t}"*`, ...r.vars.map(v => `"${v}"*`)])];
+      return alts.length > 1 ? `(${alts.join(' OR ')})` : alts[0];
+    });
+    const joined = terms.join('');
+    const and = parts.join(' AND ');
+    return { m: terms.length > 1 && joined.length >= 6 ? `(${and}) OR "${joined}"*` : and, fixes };
+  };
+  const a = build(false);
+  if (ftsHas(a.m)) return { m: a.m };
+  const b = build(true);
+  if (b.fixes.length && ftsHas(b.m)) return { m: b.m, note: { from: b.fixes.map(x => x[0]).join(' '), to: b.fixes.map(x => x[1]).join(' ') } };
+  return { m: a.m };
+}
+// tip dijela (kucanjem): tačan naziv, ili riječi (množina/sinonimi), ili uz ispravku grešaka
+function matchTypes(text) {
+  const types = distinctOf('type').map(t => ({ t, words: smart.fold(t).split(/[^a-z0-9]+/).filter(Boolean) }));
+  const toks = smart.fold(text).split(/[^a-z0-9]+/).filter(Boolean).slice(0, 5);
+  if (!toks.length) return { types: [] };
+  const run = fuzzy => {
+    const fixes = [];
+    const alts = toks.map(t => { const r = smart.resolve(t, vocab(), fuzzy); if (r.fixed) fixes.push([t, r.fixed]); return r.vars.length ? r.vars : [t]; });
+    const hit = types.filter(x => alts.every(al => al.some(v => x.words.some(w => w.startsWith(v))))).map(x => x.t);
+    return { hit, fixes };
+  };
+  const a = run(false);
+  if (a.hit.length) return { types: a.hit };
+  const b = run(true);
+  return b.hit.length ? { types: b.hit, note: { from: b.fixes.map(x => x[0]).join(' '), to: b.fixes.map(x => x[1]).join(' ') } } : { types: [] };
+}
+
 function ftsQuery(q) {
   const raw = clean(q, 100);
   if (!raw) return null;
@@ -148,6 +199,7 @@ function ftsQuery(q) {
 
 function buildList(f) {
   const where = [], args = [];
+  let note = null;
   if (f.marka) { where.push('make = ?'); args.push(f.marka); }
   if (f.model) { where.push('model = ?'); args.push(f.model); }
   if (f.vozilo) { where.push("(vehicle = ? OR vehicle LIKE ? ESCAPE '\\')"); args.push(f.vozilo, f.vozilo.replace(/[\\%_]/g, '\\$&') + ' · %'); }
@@ -155,7 +207,12 @@ function buildList(f) {
   if (f.tip) {
     if (f.tip === 'Ostalo') where.push(`(type IS NULL OR type = '' OR type = 'Ostalo')`);
     else if (db.prepare('SELECT 1 FROM parts WHERE type = ? COLLATE NOCASE LIMIT 1').get(f.tip)) { where.push('type = ? COLLATE NOCASE'); args.push(f.tip); }
-    else { where.push("type LIKE ? ESCAPE '\\'"); args.push('%' + f.tip.replace(/[\\%_]/g, '\\$&') + '%'); }
+    else {
+      const mt = matchTypes(f.tip);
+      if (mt.note) note = mt.note;
+      if (!mt.types.length) where.push('0 = 1');
+      else { const ts = mt.types.slice(0, 300); where.push(`type IN (${ts.map(() => '?').join(',')})`); args.push(...ts); }
+    }
   }
   if (f.vm) {
     const m = matchCombos(f.vm).filter(c => !f.marka || c.make === f.marka).slice(0, 80);
@@ -180,12 +237,13 @@ function buildList(f) {
   if (f.katbr) { const n = f.katbr.replace(/[^A-Za-z0-9]/g, '').toUpperCase(); if (n) { where.push('catalog_norm LIKE ?'); args.push('%' + n + '%'); } }
   if (f.cijena) { where.push('price IS NOT NULL AND price > 0'); }
   if (f.q) {
-    const m = ftsQuery(f.q);
-    if (m) { where.push('id IN (SELECT rowid FROM parts_fts WHERE parts_fts MATCH ?)'); args.push(m); }
+    const sm = smartFts(f.q);
+    if (sm.note) note = sm.note;
+    if (sm.m) { where.push('id IN (SELECT rowid FROM parts_fts WHERE parts_fts MATCH ?)'); args.push(sm.m); }
   }
   const order = f.sort === 'cijena_asc' ? '(price IS NULL), price ASC, id DESC'
     : f.sort === 'cijena_desc' ? '(price IS NULL), price DESC, id DESC' : 'id DESC';
-  return { w: where.length ? 'WHERE ' + where.join(' AND ') : '', args, order };
+  return { w: where.length ? 'WHERE ' + where.join(' AND ') : '', args, order, note };
 }
 
 // ---------- stranice ----------
@@ -279,7 +337,7 @@ app.get('/api/facets', (req, res) => {
 
 app.get('/dijelovi', (req, res) => {
   const f = readFilters(req.query);
-  const { w, args, order } = buildList(f);
+  const { w, args, order, note } = buildList(f);
   const total = db.prepare(`SELECT COUNT(*) AS n FROM parts ${w}`).get(...args).n;
   const pages = Math.max(1, Math.ceil(total / cfg.pageSize));
   const page = Math.min(pages, Math.max(1, parseInt(req.query.page, 10) || 1));
@@ -295,8 +353,8 @@ app.get('/dijelovi', (req, res) => {
     const veh = [f.marka, f.model].filter(Boolean).join(' ') || f.vm;
     stats.search(req, { kind: 'dio', term, vehicle: veh, results: total });
   }
-  if (req.query.frag) { res.setHeader('Cache-Control', 'no-store'); return res.html(V.listFrag({ rows, total, page, pages, f, baseQuery, yard: yardForF(f) })); }
-  res.html(V.list({ rows, total, page, pages, f, facets: facets(f.marka, f.model), tree: groupTree(f), baseQuery, yard: yardForF(f) }));
+  if (req.query.frag) { res.setHeader('Cache-Control', 'no-store'); return res.html(V.listFrag({ rows, total, page, pages, f, baseQuery, yard: yardForF(f), note })); }
+  res.html(V.list({ rows, total, page, pages, f, facets: facets(f.marka, f.model), tree: groupTree(f), baseQuery, yard: yardForF(f), note }));
 });
 
 app.get('/dio/:slug', async (req, res) => {
