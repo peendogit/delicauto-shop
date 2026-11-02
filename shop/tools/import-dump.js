@@ -81,7 +81,7 @@ const yy = d => (d ? String(d).slice(2, 4) : '');
   const groups = byId(data.spare_part_group), types = byId(data.spare_part_type), makes = byId(data.car_make), models = byId(data.car_model);
   const imgs = new Map();
   for (const a of data.lib_attachment) {
-    if ((a.type !== 'SPARE_PART' && a.type !== 'RIMS') || a.active !== 1 || a.deleted_date) continue;
+    if ((a.type !== 'SPARE_PART' && a.type !== 'RIMS' && a.type !== 'VEHICLE') || a.active !== 1 || a.deleted_date) continue;
     (imgs.get(a.object_id) || imgs.set(a.object_id, []).get(a.object_id)).push(a);
   }
   const imgName = id => IMG_PATTERN.replace('{id}', id).replace('{p2}', id.slice(0, 2)).replace('{p4}', id.slice(0, 4));
@@ -136,14 +136,15 @@ const yy = d => (d ? String(d).slice(2, 4) : '');
       nr++;
     }
     // vozila na placu (cijelo vozilo, još nije rastavljeno na dijelove)
-    const insVeh = db.prepare('INSERT INTO yard_vehicles(id, make, model, year, fuel, engine_code, body, code) VALUES (?,?,?,?,?,?,?,?)');
+    const insVeh = db.prepare('INSERT INTO yard_vehicles(id, make, model, year, fuel, engine_code, body, code, images) VALUES (?,?,?,?,?,?,?,?,?)');
     let nv = 0;
     for (const v of data.vehicle) {
       if (v.status !== 'COMPLETE' || v.active !== 1 || v.deleted_date) continue;
       const mk = makes.get(v.make_id), mo = models.get(v.model_id);
       if (!mk || !mo) continue;
       insVeh.run(stableId(v.id), mk.name, [mo.name, mo.generation_name].filter(Boolean).join(' '), v.model_year || null,
-        MAP.fuel[v.fuel_type] || null, v.engine_code || null, MAP.body[v.the_type] || v.the_type || null, v.internal_code || null);
+        MAP.fuel[v.fuel_type] || null, v.engine_code || null, MAP.body[v.the_type] || v.the_type || null, v.internal_code || null,
+        JSON.stringify((imgs.get(v.id) || []).sort((a, b) => b.main_picture - a.main_picture).slice(0, 1).map(a => imgName(a.id))));
       nv++;
     }
     console.log(`Felne: ${nr}, vozila na placu: ${nv}`);

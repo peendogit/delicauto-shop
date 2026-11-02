@@ -398,3 +398,4 @@ details.faq{border-top:1px solid var(--line);padding:8px 0}details.faq summary{c
 .arrived .chip{display:flex;flex-direction:column;padding:8px 12px;border:1px solid var(--line,#d6dbe1);border-radius:10px;text-decoration:none;color:inherit;min-width:140px}
 .arrived .chip span{font-size:.78rem;opacity:.7}
 .top-search button.ico-s{display:inline-flex;align-items:center;justify-content:center;padding-left:14px;padding-right:14px}
+.arrived .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.arrived .chip{padding:0;overflow:hidden;min-width:0}.arrived .chip img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#eee}.arrived .chip b,.arrived .chip span{padding:0 10px}.arrived .chip b{padding-top:8px}.arrived .chip span{padding-bottom:8px}

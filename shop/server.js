@@ -283,7 +283,7 @@ app.get('/favicon.ico', (req, res) => res.redirect('/static/favicon.png', 301));
 app.get('/', (req, res) => {
   const total = db.prepare('SELECT COUNT(*) AS n FROM parts').get().n;
   const latest = db.prepare('SELECT * FROM parts ORDER BY id DESC LIMIT 12').all().map(V.rowToPart);
-  const arrived = db.prepare('SELECT make, model, year, fuel, engine_code FROM yard_vehicles WHERE make IS NOT NULL AND model IS NOT NULL ORDER BY id DESC LIMIT 6').all();
+  const arrived = db.prepare('SELECT make, model, year, fuel, engine_code, images FROM yard_vehicles WHERE make IS NOT NULL AND model IS NOT NULL ORDER BY (images != '[]') DESC, id DESC LIMIT 6').all();
   res.html(V.home({ makes: makesList().slice(0, 24), latest, total, facets: facets(), f: readFilters({}), arrived }));
 });
 

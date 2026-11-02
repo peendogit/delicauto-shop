@@ -38,6 +38,7 @@ function open(dataDir) {
       id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, phone TEXT, location TEXT, vehicle TEXT, description TEXT,
       images INTEGER NOT NULL DEFAULT 0, mailed INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'nova', created_at INTEGER);
   `);
+  try { db.exec("ALTER TABLE yard_vehicles ADD COLUMN images TEXT NOT NULL DEFAULT '[]'"); } catch { /* kolona već postoji */ }
   try { db.exec('ALTER TABLE buyouts ADD COLUMN price TEXT'); } catch { /* kolona već postoji */ }
   try { db.exec('ALTER TABLE parts ADD COLUMN catalog_norm TEXT'); } catch { /* kolona već postoji */ }
   return db;

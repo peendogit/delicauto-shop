@@ -54,7 +54,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=43">
+<link rel="stylesheet" href="/static/style.css?v=44">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -211,7 +211,7 @@ function home({ makes, latest, total, facets, f, arrived = [] }) {
   ${latest.length ? partsTable(latest) : '<p class="muted">Katalog se učitava, pokušaj ponovo za koji trenutak.</p>'}
 </section>
 ${arrived.length ? `<section class="arrived"><div class="sec-h"><h2>Stiglo na plac</h2></div>
-  <div class="chips">${arrived.map(y => `<a class="chip" href="/dijelovi?marka=${encodeURIComponent(y.make)}&amp;model=${encodeURIComponent(y.model)}"><b>${esc(y.make)} ${esc(y.model)}</b><span>${[y.year, y.fuel, y.engine_code].filter(Boolean).map(esc).join(' · ')}</span></a>`).join('')}</div></section>` : ''}
+  <div class="chips">${arrived.map(y => `<a class="chip" href="/dijelovi?marka=${encodeURIComponent(y.make)}&amp;model=${encodeURIComponent(y.model)}">${(() => { const im = parseImgs(y)[0]; return im ? `<img src="${imgUrl(im, 480)}" alt="${esc(y.make + ' ' + y.model)}" loading="lazy" width="480" height="360">` : ''; })()}<b>${esc(y.make)} ${esc(y.model)}</b><span>${[y.year, y.fuel, y.engine_code].filter(Boolean).map(esc).join(' · ')}</span></a>`).join('')}</div></section>` : ''}
 <section class="cta buy-cta"><h2>Otkup havarisanih vozila Bijeljina</h2>
   <p>Prodaješ vozilo u kvaru ili nakon udesa? Isplata odmah, po vozilo dolazimo mi. Pošalji slike, lokaciju i cijenu.</p>
   <a class="btn" href="/otkup" title="Otkup havarisanih vozila Bijeljina">Pošalji vozilo za otkup</a></section>
