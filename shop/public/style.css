@@ -392,7 +392,7 @@ details.faq{border-top:1px solid var(--line);padding:8px 0}details.faq summary{c
 
 .didyou{background:#fff8e6;border:1px solid #f5d27a;border-radius:6px;padding:8px 12px;margin:6px 0 10px}.didyou span{color:#667}
 
-.share{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:7px 12px;border:1px solid var(--line,#d6dbe1);background:transparent;border-radius:8px;font:inherit;font-size:.85rem;color:inherit;cursor:pointer}
+.share{display:flex;width:fit-content;align-self:flex-start;align-items:center;gap:6px;margin-top:10px;padding:7px 12px;border:1px solid var(--line,#d6dbe1);background:transparent;border-radius:8px;font:inherit;font-size:.85rem;color:inherit;cursor:pointer}
 .share:hover{background:rgba(127,127,127,.1)}
 .arrived .chips{display:flex;flex-wrap:wrap;gap:8px}
 .arrived .chip{display:flex;flex-direction:column;padding:8px 12px;border:1px solid var(--line,#d6dbe1);border-radius:10px;text-decoration:none;color:inherit;min-width:140px}

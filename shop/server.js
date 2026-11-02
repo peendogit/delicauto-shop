@@ -372,17 +372,8 @@ app.get('/dio/:slug', async (req, res) => {
   const canonical = V.partUrl(p);
   if (decodeURIComponent(req.path) !== canonical) return res.redirect(canonical, 301);
   stats.partView(req, id, `${p.catalog ? p.catalog + ' · ' : ''}${V.partTitle(p)}`);
-  res.html(V.detail(p, relatedParts(p)));
+  res.html(V.detail(p));
 });
-
-// slični dijelovi: isto vozilo, pa isti tip dijela
-function relatedParts(p) {
-  const seen = new Set([p.id]), out = [];
-  const add = rows => { for (const r of rows) if (out.length < 6 && !seen.has(r.id)) { seen.add(r.id); out.push(V.rowToPart(r)); } };
-  if (p.make && p.model) add(db.prepare('SELECT * FROM parts WHERE make = ? AND model = ? AND id != ? ORDER BY (type = ?) DESC, id DESC LIMIT 6').all(p.make, p.model, p.id, p.type || ''));
-  if (out.length < 6 && p.type) add(db.prepare('SELECT * FROM parts WHERE type = ? AND id != ? ORDER BY (make = ?) DESC, id DESC LIMIT 6').all(p.type, p.id, p.make || ''));
-  return out;
-}
 
 // Google Merchant feed (samo dijelovi s cijenom)
 app.get('/feed/google.xml', (req, res) => {
