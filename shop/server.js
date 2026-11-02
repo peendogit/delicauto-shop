@@ -568,6 +568,7 @@ app.get('/admin/otkup/:id', (req, res) => {
   if (!adminAuth(req, res)) return;
   const o = db.prepare('SELECT * FROM buyouts WHERE id = ?').get(parseInt(req.params.id, 10) || 0);
   if (!o) return res.html(V.notFound(), 404);
+  if (o.status === 'nova') db.prepare("UPDATE buyouts SET status = 'procitana' WHERE id = ?").run(o.id); // otvaranje = pročitano
   const E = V.esc;
   const body = `<div class="admin"><p><a href="/admin">← Otkup vozila</a></p>
 <h1>${E(o.vehicle || 'Vozilo')} <small class="muted">#${o.id}</small></h1>
@@ -576,7 +577,8 @@ app.get('/admin/otkup/:id', (req, res) => {
 <p>Lokacija vozila: <b>${E(o.location)}</b></p>
 ${o.price ? `<p>Cijena: <b>${E(o.price)} KM</b></p>` : ''}
 ${o.description ? `<p><i>${E(o.description)}</i></p>` : ''}
-<p>Status: <span class="st">${E(o.status)}</span> <form class="inline" method="post" action="/admin/otkup/${o.id}">${[['nova', 'Nova'], ['kontaktiran', 'Kontaktiran'], ['zavrseno', 'Završeno']].map(([v, t]) => `<button name="status" value="${v}">${t}</button>`).join(' ')}</form></p></div>
+<div class="acts"><form class="inline" method="post" action="/admin/otkup/${o.id}"><button name="status" value="nova">Vrati u nove</button></form>
+<form class="inline" method="post" action="/admin/otkup/${o.id}/obrisi" onsubmit="return confirm('Obrisati ovu ponudu i njene slike zauvijek?')"><button class="danger">🗑 Obriši</button></form></div></div>
 ${o.images ? `<h2>Slike (${o.images})</h2><div class="otimgs">${Array.from({ length: o.images }, (_, i) => `<a href="/admin/otkup/${o.id}/${i + 1}" target="_blank"><img src="/admin/otkup/${o.id}/${i + 1}" alt="" loading="lazy"></a>`).join('')}</div>` : ''}
 </div>`;
   res.html(V.layout({ title: 'Otkup #' + o.id, path: '/admin', noindex: true, body }));
@@ -592,9 +594,25 @@ app.get('/admin/otkup/:id/:n', (req, res) => {
 app.post('/admin/otkup/:id', (req, res) => {
   if (!adminAuth(req, res)) return;
   if (!sameOrigin(req)) return res.html('Zabranjeno', 403);
-  const status = ['nova', 'kontaktiran', 'zavrseno'].includes(req.body.status) ? req.body.status : null;
+  const status = req.body.status === 'nova' ? 'nova' : null;
   if (status) db.prepare('UPDATE buyouts SET status = ? WHERE id = ?').run(status, Number(req.params.id));
-  res.redirect('/admin/otkup/' + (Number(req.params.id) || 0), 303);
+  res.redirect(status === 'nova' ? '/admin' : '/admin/otkup/' + (Number(req.params.id) || 0), 303);
+});
+function delBuyout(id) {
+  db.prepare('DELETE FROM buyouts WHERE id = ?').run(id);
+  try { for (const f of fs.readdirSync(OTKUP_DIR)) if (f.startsWith(id + '-')) fs.unlinkSync(path.join(OTKUP_DIR, f)); } catch { /* nema slika */ }
+}
+app.post('/admin/otkup/:id/obrisi', (req, res) => {
+  if (!adminAuth(req, res)) return;
+  if (!sameOrigin(req)) return res.html('Zabranjeno', 403);
+  const id = parseInt(req.params.id, 10); if (id > 0) delBuyout(id);
+  res.redirect('/admin', 303);
+});
+app.post('/admin/otkup-obrisi-procitane', (req, res) => {
+  if (!adminAuth(req, res)) return;
+  if (!sameOrigin(req)) return res.html('Zabranjeno', 403);
+  for (const r of db.prepare("SELECT id FROM buyouts WHERE status <> 'nova'").all()) delBuyout(r.id);
+  res.redirect('/admin', 303);
 });
 
 app.post('/api/klik', (req, res) => {
@@ -635,17 +653,20 @@ ${tbl(['Artikal', 'Viber', 'WhatsApp'], r.clicks.map(x => `<tr><td><a href="${E(
 app.get('/admin', (req, res) => {
   if (!adminAuth(req, res)) return;
   const buys = db.prepare('SELECT * FROM buyouts ORDER BY id DESC LIMIT 100').all();
-  const st = (action, id, opts) => `<form class="inline" method="post" action="/admin/${action}/${id}">${opts.map(([v, t]) =>
-    `<button name="status" value="${v}">${t}</button>`).join(' ')}</form>`;
+  const fresh = buys.filter(o => o.status === 'nova'), seen = buys.filter(o => o.status !== 'nova');
+  const row = o => `<a class="otr${o.status === 'nova' ? ' new' : ''}" href="/admin/otkup/${o.id}">
+<b>${V.esc(o.vehicle || 'Vozilo')}</b><span>${V.esc(o.name)} · ${V.esc(o.location)}${o.price ? ' · ' + V.esc(o.price) + ' KM' : ''}</span><small>${fmtTs(o.created_at)}${o.images ? ' · 📷 ' + o.images : ''}</small></a>`;
   const s = sync.status;
   const body = `<div class="admin"><h1>Admin</h1>
 <p><a class="btn" href="/admin/statistika">📊 Statistika posjeta i pretraga</a></p>
 <p class="muted">Dijelova u shopu: <b>${db.prepare('SELECT COUNT(*) AS n FROM parts').get().n}</b> · zadnja provjera promjena: ${s.lastPoll ? fmtTs(s.lastPoll) : '—'} ·
  zadnje potpuno poravnanje: ${s.lastFull ? fmtTs(s.lastFull) : '—'}${s.lastError ? ` · <b style="color:var(--err)">greška: ${V.esc(s.lastError)}</b>` : ''}
  <form class="inline" method="post" action="/admin/sync"><button>Sinhroniziraj odmah</button></form></p>
-<h2>Otkup vozila</h2>
-<div class="otl">${buys.map(o => `<a class="otr${o.status === 'nova' ? ' new' : ''}" href="/admin/otkup/${o.id}">
-<b>${V.esc(o.vehicle || 'Vozilo')}</b><span>${V.esc(o.name)} · ${V.esc(o.location)}${o.price ? ' · ' + V.esc(o.price) + ' KM' : ''}</span><small>${fmtTs(o.created_at)}${o.images ? ' · 📷 ' + o.images : ''}</small><em class="st">${V.esc(o.status)}</em></a>`).join('') || '<p>Nema ponuda.</p>'}</div>
+<h2>Otkup vozila — nove ponude${fresh.length ? ` <span class="badge">${fresh.length}</span>` : ''}</h2>
+<div class="otl">${fresh.map(row).join('') || '<p class="muted">Nema novih ponuda.</p>'}</div>
+${seen.length ? `<details class="otold"><summary>Pročitane (${seen.length})</summary>
+<div class="otl">${seen.map(row).join('')}</div>
+<form class="inline" method="post" action="/admin/otkup-obrisi-procitane" onsubmit="return confirm('Obrisati sve pročitane ponude i njihove slike zauvijek?')"><button class="danger">🗑 Obriši sve pročitane</button></form></details>` : ''}
 </div>`;
   res.html(V.layout({ title: 'Admin', path: '/admin', noindex: true, body }));
 });

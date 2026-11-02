@@ -176,8 +176,13 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
     r = await fetch(S('/admin'), { headers: { authorization: basic } }); const adm = await r.text();
     const det = await (await fetch(S('/admin/otkup/1'), { headers: { authorization: basic } })).text();
     ok(adm.includes('Golf 5 2005') && adm.includes('href="/admin/otkup/1"') && det.includes('/admin/otkup/1/1') && !det.includes('/admin/otkup/1/2'), 'otkup: lista, stranica ponude i samo ispravna slika');
+    const adm2 = await (await fetch(S('/admin'), { headers: { authorization: basic } })).text();
+    ok(adm2.includes('Pročitane (1)') && adm2.indexOf('Pročitane (1)') < adm2.indexOf('href="/admin/otkup/1"'), 'otkup: otvorena ponuda ide u pročitane (sklopljeno)');
     r = await fetch(S('/admin/otkup/1/1')); ok(r.status === 401, 'otkup: slika zaštićena lozinkom');
     r = await fetch(S('/admin/otkup/1/1'), { headers: { authorization: basic } }); ok(r.status === 200 && r.headers.get('content-type') === 'image/jpeg', 'otkup: slika dostupna adminu');
+    r = await fetch(S('/admin/otkup/1/obrisi'), { method: 'POST', redirect: 'manual', headers: { authorization: basic } });
+    const adm3 = await (await fetch(S('/admin'), { headers: { authorization: basic } })).text();
+    ok(r.status === 303 && !adm3.includes('Golf 5 2005'), 'otkup: brisanje ponude');
     r = await get('/'); ok(r.text.includes('/otkup'), 'meni vodi na otkup');
 
     console.log('SEO');

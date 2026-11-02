@@ -375,3 +375,10 @@ details.adv .sf-grid{padding:4px 12px 12px;display:grid;grid-template-columns:re
 .cbtns .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .cbtns .btn .ic{flex:none;width:18px;height:18px}
 .buy .cbtns .btn .ic{width:20px;height:20px}
+
+.badge{background:#f5a300;color:#0f2a47;border-radius:11px;padding:1px 9px;font-size:.85rem;vertical-align:middle}
+details.otold{margin-top:14px;border:1px solid var(--line);border-radius:6px;background:#fafbfd}
+details.otold>summary{cursor:pointer;padding:11px 12px;font-weight:600;color:#556}details.otold .otl{padding:0 10px 10px}
+details.otold form{padding:0 10px 12px}
+button.danger{background:#fff;color:#b3261e;border:1px solid #b3261e;border-radius:5px;padding:7px 12px;cursor:pointer}
+.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
