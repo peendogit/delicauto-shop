@@ -477,7 +477,6 @@ ${mapSection('Gdje preuzeti ove felne', true)}`;
 }
 
 function buyout() {
-  const kw = 'otkup havarisanih vozila Bijeljina';
   const faq = [
     ['Otkupljujete li havarisana vozila u Bijeljini?', `Da. Auto Otpad Delić iz Bijeljine bavi se otkupom havarisanih, neispravnih i otpisanih vozila. Pošaljite slike i podatke putem forme na ovoj stranici.`],
     ['Kada se vrši isplata za otkupljeno vozilo?', 'Isplata je odmah, u trenutku preuzimanja vozila.'],
@@ -489,7 +488,7 @@ function buyout() {
   const body = `
 <nav class="crumbs"><a href="/">Početna</a> › <span>Otkup havarisanih vozila Bijeljina</span></nav>
 <section class="panel buy-page"><div class="panel-h"><h1>Otkup havarisanih vozila Bijeljina</h1></div>
-  <p class="lead">Auto Otpad Delić je ${esc(kw)} i okolina: otkupljujemo havarisana, neispravna i otpisana vozila, <b>isplata odmah</b>, a vozilo preuzimamo na vašoj lokaciji. Pošalji nekoliko slika i podatke o vozilu.</p>
+  <p class="lead">Auto Otpad Delić vrši otkup havarisanih vozila u Bijeljini i okolini: otkupljujemo havarisana, neispravna i otpisana vozila, <b>isplata odmah</b>, a vozilo preuzimamo na vašoj lokaciji. Pošalji nekoliko slika i podatke o vozilu.</p>
   <form id="otkup-form" class="box otkup" novalidate>
     <input class="hp" type="text" name="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
     <div class="sf-grid">
