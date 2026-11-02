@@ -54,7 +54,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=39">
+<link rel="stylesheet" href="/static/style.css?v=40">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -74,7 +74,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada.</div>
 </div>
 ${socials()}</footer>
-<script src="/static/app.js?v=29" defer></script>
+<script src="/static/app.js?v=30" defer></script>
 </body></html>`;
 }
 
@@ -199,7 +199,7 @@ function partsTable(rows, start = 0) {
 </tr></thead><tbody>${rows.map((p, i) => partRow(p, i, start)).join('')}</tbody></table></div>`;
 }
 
-function home({ makes, latest, total, facets, f }) {
+function home({ makes, latest, total, facets, f, arrived = [] }) {
   const body = `
 <section class="panel home-panel">
   <div class="panel-h"><h1>Katalog polovnih auto dijelova</h1>
@@ -210,6 +210,8 @@ function home({ makes, latest, total, facets, f }) {
 <section><div class="sec-h"><h2>Nedavno dodano</h2><a href="/dijelovi">Svi dijelovi →</a></div>
   ${latest.length ? partsTable(latest) : '<p class="muted">Katalog se učitava, pokušaj ponovo za koji trenutak.</p>'}
 </section>
+${arrived.length ? `<section class="arrived"><div class="sec-h"><h2>Stiglo na plac</h2></div>
+  <div class="chips">${arrived.map(y => `<a class="chip" href="/dijelovi?marka=${encodeURIComponent(y.make)}&amp;model=${encodeURIComponent(y.model)}"><b>${esc(y.make)} ${esc(y.model)}</b><span>${[y.year, y.fuel, y.engine_code].filter(Boolean).map(esc).join(' · ')}</span></a>`).join('')}</div></section>` : ''}
 <section class="cta buy-cta"><h2>Otkup havarisanih vozila Bijeljina</h2>
   <p>Prodaješ vozilo u kvaru ili nakon udesa? Isplata odmah, po vozilo dolazimo mi. Pošalji slike, lokaciju i cijenu.</p>
   <a class="btn" href="/otkup" title="Otkup havarisanih vozila Bijeljina">Pošalji vozilo za otkup</a></section>
@@ -350,7 +352,7 @@ const SPEC_GROUPS = [
 ];
 const UNITS = { displacement: ' ccm', power: ' kW' };
 
-function detail(p) {
+function detail(p, related = []) {
   const imgs = parseImgs(p);
   const title = partTitle(p);
   const specs = SPEC_GROUPS.map(([title, fields]) => {
@@ -377,11 +379,14 @@ function detail(p) {
       ${p.price ? `<div class="price big">${esc(money(p.price))}</div>` : `<div class="ask big">Cijena na upit</div>`}
       <p>${warranty()}</p>
       ${contactBtns(p, '')}
+      <button type="button" class="share" data-share="${esc(title)}" aria-label="Podijeli">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18 16a3 3 0 00-2.100.8L8.900 12.700a3 3 0 000-1.400l6.900-4A3 3 0 1015 5.100L8.100 9.200a3 3 0 100 5.600l6.900 4.100A3 3 0 1018 16z"/></svg><span>Podijeli</span></button>
     </div>
     ${p.note ? `<p class="note">${esc(p.note)}</p>` : ''}
   </section>
 </div>
 ${specs ? `<section class="sheet"><h2>Specifikacija dijela</h2><div class="sheet-grid">${specs}</div></section>` : ''}
+${related.length ? `<section><div class="sec-h"><h2>Slični dijelovi</h2></div>${partsTable(related)}</section>` : ''}
 ${mapSection('Gdje preuzeti ovaj dio', true)}`;
   const jsonld = {
     '@context': 'https://schema.org', '@type': 'Product', name: title,

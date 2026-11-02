@@ -382,3 +382,17 @@
     });
   });
 })();
+
+// dugme „Podijeli“ na artiklu
+(function () {
+  var b = document.querySelector('[data-share]');
+  if (!b) return;
+  b.addEventListener('click', function () {
+    var data = { title: b.getAttribute('data-share'), url: location.href.split('#')[0] };
+    var label = b.querySelector('span');
+    var done = function (t) { label.textContent = t; setTimeout(function () { label.textContent = 'Podijeli'; }, 2200); };
+    if (navigator.share) { navigator.share(data).catch(function () {}); return; }
+    if (navigator.clipboard) navigator.clipboard.writeText(data.url).then(function () { done('Link kopiran'); }, function () { prompt('Kopiraj link:', data.url); });
+    else prompt('Kopiraj link:', data.url);
+  });
+})();

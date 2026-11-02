@@ -283,7 +283,8 @@ app.get('/favicon.ico', (req, res) => res.redirect('/static/favicon.png', 301));
 app.get('/', (req, res) => {
   const total = db.prepare('SELECT COUNT(*) AS n FROM parts').get().n;
   const latest = db.prepare('SELECT * FROM parts ORDER BY id DESC LIMIT 12').all().map(V.rowToPart);
-  res.html(V.home({ makes: makesList().slice(0, 24), latest, total, facets: facets(), f: readFilters({}) }));
+  const arrived = db.prepare('SELECT make, model, year, fuel, engine_code FROM yard_vehicles WHERE make IS NOT NULL AND model IS NOT NULL ORDER BY id DESC LIMIT 6').all();
+  res.html(V.home({ makes: makesList().slice(0, 24), latest, total, facets: facets(), f: readFilters({}), arrived }));
 });
 
 // Stablo grupa dijelova (grupa -> tip dijela) za trenutni izbor vozila/pretrage
@@ -371,7 +372,30 @@ app.get('/dio/:slug', async (req, res) => {
   const canonical = V.partUrl(p);
   if (decodeURIComponent(req.path) !== canonical) return res.redirect(canonical, 301);
   stats.partView(req, id, `${p.catalog ? p.catalog + ' · ' : ''}${V.partTitle(p)}`);
-  res.html(V.detail(p));
+  res.html(V.detail(p, relatedParts(p)));
+});
+
+// slični dijelovi: isto vozilo, pa isti tip dijela
+function relatedParts(p) {
+  const seen = new Set([p.id]), out = [];
+  const add = rows => { for (const r of rows) if (out.length < 6 && !seen.has(r.id)) { seen.add(r.id); out.push(V.rowToPart(r)); } };
+  if (p.make && p.model) add(db.prepare('SELECT * FROM parts WHERE make = ? AND model = ? AND id != ? ORDER BY (type = ?) DESC, id DESC LIMIT 6').all(p.make, p.model, p.id, p.type || ''));
+  if (out.length < 6 && p.type) add(db.prepare('SELECT * FROM parts WHERE type = ? AND id != ? ORDER BY (make = ?) DESC, id DESC LIMIT 6').all(p.type, p.id, p.make || ''));
+  return out;
+}
+
+// Google Merchant feed (samo dijelovi s cijenom)
+app.get('/feed/google.xml', (req, res) => {
+  const x = V.esc;
+  const rows = db.prepare('SELECT * FROM parts WHERE price > 0 AND qty > 0 ORDER BY id DESC LIMIT 50000').all().map(V.rowToPart);
+  const items = rows.map(p => {
+    const img = V.parseImgs(p)[0], t = V.partTitle(p);
+    return `<item><g:id>${p.id}</g:id><title>${x(t.slice(0, 150))}</title><description>${x(`${t}${p.vehicle ? ' (' + p.vehicle + ')' : ''}. Polovni dio, garancija 7 dana.`)}</description>` +
+      `<link>${x(cfg.siteUrl + V.partUrl(p))}</link>${img ? `<g:image_link>${x(cfg.siteUrl + V.imgUrl(img, 960))}</g:image_link>` : ''}` +
+      `<g:price>${Number(p.price).toFixed(2)} BAM</g:price><g:availability>in_stock</g:availability><g:condition>used</g:condition>` +
+      `${p.make ? `<g:brand>${x(p.make)}</g:brand>` : ''}${p.catalog ? `<g:mpn>${x(p.catalog)}</g:mpn>` : '<g:identifier_exists>no</g:identifier_exists>'}</item>`;
+  }).join('');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel><title>${x(cfg.name)}</title><link>${x(cfg.siteUrl)}</link><description>Polovni auto dijelovi</description>${items}</channel></rss>`, 'application/xml; charset=utf-8');
 });
 
 app.get('/korpa', (req, res) => res.redirect('/', 301));
@@ -761,6 +785,27 @@ app.onError = (err, req, res, status) => (req.path.startsWith('/api/') ? res.jso
   : res.html(V.layout({ title: 'Greška', noindex: true, body: '<div class="empty"><h1>Došlo je do greške</h1><p><a class="btn" href="/">Na početnu</a></p></div>' }), status));
 
 if (cfg.adminPass && cfg.adminPass.length < 10) console.warn('[sigurnost] ADMIN_PASS je kratak — koristi bar 10 znakova');
+// čuvar: Telegram upozorenje ako sajt ili sinhronizacija zapnu (najviše jednom na sat), i javi kad se oporavi
+(() => {
+  let fails = 0, alerted = 0, down = false;
+  const check = async () => {
+    let problem = '';
+    try {
+      const r = await fetch(`http://127.0.0.1:${cfg.port}/health`, { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) problem = 'sajt vraća grešku ' + r.status;
+    } catch (e) { problem = 'sajt ne odgovara'; }
+    if (!problem && !STANDALONE && sync.status.lastError) problem = 'sinhronizacija s aplikacijom: ' + sync.status.lastError;
+    if (problem) {
+      fails++;
+      if (fails >= 3 && Date.now() - alerted > 3600e3) { alerted = Date.now(); down = true; notify(`⚠️ ${cfg.name}: ${problem}\n${cfg.siteUrl}`).catch(() => {}); }
+    } else {
+      if (down) notify(`✅ ${cfg.name}: sve ponovo radi`).catch(() => {});
+      fails = 0; down = false;
+    }
+  };
+  setInterval(check, 5 * 60e3).unref();
+})();
+
 app.listen(cfg.port, () => {
   console.log(`[shop] ${cfg.name} — http://localhost:${cfg.port}  (sqlite: ${db.driver}, sharp: ${sharp ? 'da' : 'ne'})`);
   sync.start();
