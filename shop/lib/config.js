@@ -41,7 +41,7 @@ module.exports = {
   email: (e.SHOP_EMAIL || '').trim(),
   address: (e.SHOP_ADDRESS || 'Pavlovića put 13').trim(),
   mapQuery: (e.SHOP_MAP_QUERY || '44.7860809,19.2464').trim(),
-  social: { facebook: (e.SOCIAL_FACEBOOK || '').trim(), instagram: (e.SOCIAL_INSTAGRAM || '').trim(), olx: (e.SOCIAL_OLX || '').trim() },
+  social: { facebook: (e.SOCIAL_FACEBOOK || 'https://www.facebook.com/share/19jwaNTPPR/').trim(), instagram: (e.SOCIAL_INSTAGRAM || 'https://www.instagram.com/delicauto').trim(), olx: (e.SOCIAL_OLX || 'https://olx.ba/profil/AutoDelic/aktivni').trim() },
   mapLink: (e.SHOP_MAP_LINK || 'https://maps.app.goo.gl/YxhohNsrNt7pEarG6').trim(),
   adminUser: e.ADMIN_USER || 'admin',
   adminPass: e.ADMIN_PASS || '',
