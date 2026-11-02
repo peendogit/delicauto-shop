@@ -54,7 +54,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=42">
+<link rel="stylesheet" href="/static/style.css?v=43">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -62,7 +62,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <a class="brand" href="/" aria-label="Auto Otpad Delić — početna"><img class="brand-logo" src="/static/logo.png" alt="Delić" width="237" height="88"><span class="brand-name"><b>Auto otpad</b><small>Katalog polovnih dijelova</small></span></a>
   <form class="top-search" action="/dijelovi" method="get" role="search">
     <input type="search" name="q" placeholder="Brza pretraga: dio, marka, model, kataloški broj…" aria-label="Pretraga" autocomplete="off">
-    <button type="submit" class="ico-s" aria-label="Traži"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" d="M10.500 4a6.500 6.500 0 105 10.600L20 19M10.500 4"/></svg></button>
+    <button type="submit" class="ico-s" aria-label="Traži"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10" cy="10" r="6"/><path d="M14.500 14.500L20 20"/></g></svg></button>
   </form>
 </div>
 <nav class="mainnav" aria-label="Glavni meni"><div class="wrap"><a href="/katalog">Katalog po vozilu</a><a href="/felne">Felne</a><a href="/otkup" class="nav-hl">Otkup vozila</a><a href="/kontakt">Kontakt</a></div></nav>
