@@ -73,7 +73,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/felne">Felne</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt i upit</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada. Dostupnost se provjerava u trenutku narudžbe.</div>
 </div></footer>
-<script src="/static/app.js?v=27" defer></script>
+<script src="/static/app.js?v=28" defer></script>
 </body></html>`;
 }
 
@@ -199,7 +199,7 @@ function home({ makes, latest, total, facets, f }) {
   ${latest.length ? partsTable(latest) : '<p class="muted">Katalog se učitava, pokušaj ponovo za koji trenutak.</p>'}
 </section>
 <section class="cta buy-cta"><h2>Otkupljujemo havarisana vozila</h2>
-  <p>Prodaješ vozilo u kvaru ili nakon udesa? Pošalji slike i lokaciju, javimo se brzo s ponudom.</p>
+  <p>Prodaješ vozilo u kvaru ili nakon udesa? Pošalji slike, lokaciju i cijenu.</p>
   <a class="btn" href="/otkup">Pošalji vozilo za otkup</a></section>
 <section class="cta"><h2>Ne nalaziš dio?</h2>
   <p>Pozovi nas ili nam piši na Viber i WhatsApp s modelom i godištem vozila.</p>
@@ -469,7 +469,7 @@ function buyout() {
   const body = `
 <nav class="crumbs"><a href="/">Početna</a> › <span>Otkup vozila</span></nav>
 <section class="panel buy-page"><div class="panel-h"><h1>Otkup havarisanih vozila</h1></div>
-  <p class="lead">Otkupljujemo havarisana, neispravna i otpisana vozila. Pošalji nekoliko slika i podatke, a mi ćemo ti se javiti s ponudom${phone ? ` — ili nas odmah nazovi na <a href="tel:${esc(phone)}">${esc(cfg.phone)}</a>` : ''}.</p>
+  <p class="lead">Otkupljujemo havarisana, neispravna i otpisana vozila. Pošalji nekoliko slika i podatke o vozilu.</p>
   <form id="otkup-form" class="box otkup" novalidate>
     <input class="hp" type="text" name="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
     <div class="sf-grid">
@@ -477,6 +477,7 @@ function buyout() {
       <label class="f"><span>Telefon *</span><input name="phone" type="tel" required maxlength="40" autocomplete="tel"></label>
       <label class="f"><span>Gdje se vozilo nalazi (grad / mjesto) *</span><input name="location" required maxlength="120" autocomplete="address-level2"></label>
       <label class="f"><span>Marka, model, godište</span><input name="vehicle" maxlength="120" placeholder="npr. Audi A4 2012"></label>
+      <label class="f"><span>Cijena (KM)</span><input name="price" inputmode="decimal" maxlength="20" placeholder="npr. 1500"></label>
     </div>
     <label class="f"><span>Opis stanja (šta je oštećeno, da li se pokreće, papiri…)</span><textarea name="description" rows="4" maxlength="1500"></textarea></label>
     <div class="f"><span>Slike vozila (do 8)</span>
@@ -488,7 +489,7 @@ function buyout() {
   </form>
 </section>`;
   return layout({ title: 'Otkup havarisanih vozila', path: '/otkup', body,
-    desc: `Otkup havarisanih i neispravnih vozila — ${cfg.name}, ${cfg.city}. Pošalji slike i lokaciju, javimo se s ponudom.` });
+    desc: `Otkup havarisanih i neispravnih vozila — ${cfg.name}, ${cfg.city}. Pošalji slike, lokaciju i cijenu vozila.` });
 }
 
 function unavailable(id) {

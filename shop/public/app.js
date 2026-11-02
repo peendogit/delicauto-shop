@@ -192,7 +192,7 @@
       fetch('/api/otkup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
         .then(function (r) {
-          if (r.ok) { of.innerHTML = '<h2>Hvala!</h2><p>Ponuda je poslana. Javit ćemo ti se čim prije.</p>'; window.scrollTo(0, 0); }
+          if (r.ok) { of.innerHTML = '<h2>Hvala!</h2><p>Ponuda je poslana.</p>'; window.scrollTo(0, 0); }
           else { msg.className = 'form-msg err'; msg.textContent = r.j.error || 'Slanje nije uspjelo.'; btn.disabled = false; }
         })
         .catch(function () { msg.className = 'form-msg err'; msg.textContent = 'Nema veze ili su slike prevelike, pokušaj s manje slika.'; btn.disabled = false; });

@@ -539,7 +539,7 @@ app.post('/api/otkup', async (req, res) => {
   const b = req.body || {};
   if (b.hp) return res.json({ ok: true });
   const name = clean(b.name, 80), phone = clean(b.phone, 40), location = clean(b.location, 120);
-  const vehicle = clean(b.vehicle, 120), desc = String(b.description ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ' ').trim().slice(0, 1500);
+  const price = clean(b.price, 20), vehicle = clean(b.vehicle, 120), desc = String(b.description ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, ' ').trim().slice(0, 1500);
   if (name.length < 2) return res.json({ error: 'Upiši ime i prezime.' }, 400);
   if (digits(phone).length < 6) return res.json({ error: 'Upiši ispravan broj telefona.' }, 400);
   if (location.length < 2) return res.json({ error: 'Upiši gdje se vozilo nalazi.' }, 400);
@@ -551,16 +551,16 @@ app.post('/api/otkup', async (req, res) => {
     if (buf.length < 500 || buf.length > 2_500_000 || buf[0] !== 0xff || buf[1] !== 0xd8) continue;
     imgs.push(buf);
   }
-  const r = db.prepare('INSERT INTO buyouts(name, phone, location, vehicle, description, images, created_at) VALUES (?,?,?,?,?,?,?)')
-    .run(name, phone, location, vehicle, desc, imgs.length, Date.now());
+  const r = db.prepare('INSERT INTO buyouts(name, phone, location, vehicle, description, images, created_at, price) VALUES (?,?,?,?,?,?,?,?)')
+    .run(name, phone, location, vehicle, desc, imgs.length, Date.now(), price || null);
   const id = Number(r.lastInsertRowid);
   try { fs.mkdirSync(OTKUP_DIR, { recursive: true }); imgs.forEach((buf, i) => fs.writeFileSync(path.join(OTKUP_DIR, `${id}-${i + 1}.jpg`), buf)); }
   catch (e) { console.error('[otkup] snimanje slika', e.message); }
-  const text = `Nova ponuda za otkup vozila (#${id})\n\nIme: ${name}\nTelefon: ${phone}\nLokacija vozila: ${location}\nVozilo: ${vehicle || '—'}\nSlika: ${imgs.length}\n\nOpis stanja:\n${desc || '—'}\n\nAdmin: ${cfg.siteUrl}/admin\n`;
+  const text = `Nova ponuda za otkup vozila (#${id})\n\nIme: ${name}\nTelefon: ${phone}\nLokacija vozila: ${location}\nVozilo: ${vehicle || '—'}\nCijena: ${price ? price + ' KM' : '—'}\nSlika: ${imgs.length}\n\nOpis stanja:\n${desc || '—'}\n\nAdmin: ${cfg.siteUrl}/admin\n`;
   const mailed = await sendMail({ to: cfg.mailTo, subject: `Otkup vozila: ${vehicle || 'novo vozilo'} — ${location}`, text,
     attachments: imgs.map((data, i) => ({ filename: `vozilo-${id}-${i + 1}.jpg`, contentType: 'image/jpeg', data })) });
   if (mailed) db.prepare('UPDATE buyouts SET mailed = 1 WHERE id = ?').run(id);
-  notify(`🚗 Ponuda za otkup #${id}\nIme: ${name}\nTelefon: ${phone}\nVozilo: ${vehicle || '—'}\nLokacija: ${location}\nOpis: ${desc || '—'}\nSlika: ${imgs.length}${mailed ? ' · poslano na mail' : ''}\n${cfg.siteUrl}/admin`)
+  notify(`🚗 Ponuda za otkup #${id}\nIme: ${name}\nTelefon: ${phone}\nVozilo: ${vehicle || '—'}\nCijena: ${price ? price + ' KM' : '—'}\nLokacija: ${location}\nOpis: ${desc || '—'}\nSlika: ${imgs.length}${mailed ? ' · poslano na mail' : ''}\n${cfg.siteUrl}/admin`)
     .then(() => notifyPhotos(imgs, `Otkup #${id} · ${name} · ${phone}`));
   res.json({ ok: true });
 });
@@ -574,6 +574,7 @@ app.get('/admin/otkup/:id', (req, res) => {
 <p class="muted">${fmtTs(o.created_at)}${o.mailed ? ' · mail ✓' : ''}</p>
 <div class="box"><p><b>${E(o.name)}</b><br><a class="btn" href="tel:${E(o.phone)}">📞 ${E(o.phone)}</a></p>
 <p>Lokacija vozila: <b>${E(o.location)}</b></p>
+${o.price ? `<p>Cijena: <b>${E(o.price)} KM</b></p>` : ''}
 ${o.description ? `<p><i>${E(o.description)}</i></p>` : ''}
 <p>Status: <span class="st">${E(o.status)}</span> <form class="inline" method="post" action="/admin/otkup/${o.id}">${[['nova', 'Nova'], ['kontaktiran', 'Kontaktiran'], ['zavrseno', 'Završeno']].map(([v, t]) => `<button name="status" value="${v}">${t}</button>`).join(' ')}</form></p></div>
 ${o.images ? `<h2>Slike (${o.images})</h2><div class="otimgs">${Array.from({ length: o.images }, (_, i) => `<a href="/admin/otkup/${o.id}/${i + 1}" target="_blank"><img src="/admin/otkup/${o.id}/${i + 1}" alt="" loading="lazy"></a>`).join('')}</div>` : ''}
@@ -644,7 +645,7 @@ app.get('/admin', (req, res) => {
  <form class="inline" method="post" action="/admin/sync"><button>Sinhroniziraj odmah</button></form></p>
 <h2>Otkup vozila</h2>
 <div class="otl">${buys.map(o => `<a class="otr${o.status === 'nova' ? ' new' : ''}" href="/admin/otkup/${o.id}">
-<b>${V.esc(o.vehicle || 'Vozilo')}</b><span>${V.esc(o.name)} · ${V.esc(o.location)}</span><small>${fmtTs(o.created_at)}${o.images ? ' · 📷 ' + o.images : ''}</small><em class="st">${V.esc(o.status)}</em></a>`).join('') || '<p>Nema ponuda.</p>'}</div>
+<b>${V.esc(o.vehicle || 'Vozilo')}</b><span>${V.esc(o.name)} · ${V.esc(o.location)}${o.price ? ' · ' + V.esc(o.price) + ' KM' : ''}</span><small>${fmtTs(o.created_at)}${o.images ? ' · 📷 ' + o.images : ''}</small><em class="st">${V.esc(o.status)}</em></a>`).join('') || '<p>Nema ponuda.</p>'}</div>
 </div>`;
   res.html(V.layout({ title: 'Admin', path: '/admin', noindex: true, body }));
 });
