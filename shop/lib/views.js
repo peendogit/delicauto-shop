@@ -54,7 +54,7 @@ ${ogImage ? `<meta property="og:image" content="${esc(cfg.siteUrl + ogImage)}">`
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Delić">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/static/style.css?v=37">
+<link rel="stylesheet" href="/static/style.css?v=38">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(/</g, '\\u003c')}</script>` : ''}
 </head><body>
 <div class="util"><div class="wrap util-in"><span>${esc(cfg.name)} · ${esc(cfg.city)}</span><span>${cfg.phone ? `<a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a>` : ''} <a class="admin-btn" href="/admin" rel="nofollow">Admin</a></span></div></div>
@@ -70,7 +70,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
 <main class="wrap">${body}</main>
 <footer class="foot"><div class="wrap foot-in">
   <div><img class="foot-logo" src="/static/logo.png" alt="Delić" width="158" height="59" loading="lazy"><br><b>${esc(cfg.name)}</b><br>${cfg.address ? esc(cfg.address) + '<br>' : ''}${esc(cfg.city)}, Bosna i Hercegovina${contact ? '<br>' + contact : ''}<br><br><b>Radno vrijeme</b><br>${cfg.hours.map(esc).join('<br>')}</div>
-  <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/felne">Felne</a><br><a href="/otkup">Otkup vozila</a><br><a href="/kontakt">Kontakt</a></div>
+  <div><a href="/katalog">Katalog po vozilu</a><br><a href="/dijelovi">Svi dijelovi</a><br><a href="/felne">Felne</a><br><a href="/otkup">Otkup havarisanih vozila Bijeljina</a><br><a href="/kontakt">Kontakt</a></div>
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada.</div>
 </div>
 ${socials()}</footer>
@@ -210,9 +210,9 @@ function home({ makes, latest, total, facets, f }) {
 <section><div class="sec-h"><h2>Nedavno dodano</h2><a href="/dijelovi">Svi dijelovi →</a></div>
   ${latest.length ? partsTable(latest) : '<p class="muted">Katalog se učitava, pokušaj ponovo za koji trenutak.</p>'}
 </section>
-<section class="cta buy-cta"><h2>Otkupljujemo havarisana vozila</h2>
+<section class="cta buy-cta"><h2>Otkup havarisanih vozila Bijeljina</h2>
   <p>Prodaješ vozilo u kvaru ili nakon udesa? Pošalji slike, lokaciju i cijenu.</p>
-  <a class="btn" href="/otkup">Pošalji vozilo za otkup</a></section>
+  <a class="btn" href="/otkup" title="Otkup havarisanih vozila Bijeljina">Pošalji vozilo za otkup</a></section>
 <section class="cta"><h2>Ne nalaziš dio?</h2>
   <p>Pozovi nas ili nam piši na Viber i WhatsApp s modelom i godištem vozila.</p>
   ${contactBtnsMsg('Zdravo, tražim dio koji nisam našao na sajtu.', '')}</section>`;
@@ -477,11 +477,17 @@ ${mapSection('Gdje preuzeti ove felne', true)}`;
 }
 
 function buyout() {
-  const phone = cfg.phoneTel;
+  const kw = 'otkup havarisanih vozila Bijeljina';
+  const faq = [
+    ['Otkupljujete li havarisana vozila u Bijeljini?', `Da. Auto Otpad Delić iz Bijeljine bavi se otkupom havarisanih, neispravnih i otpisanih vozila. Pošaljite slike i podatke putem forme na ovoj stranici.`],
+    ['Otkupljujete li vozila koja se ne pokreću?', 'Da, vozilo ne mora biti u voznom stanju. Opišite stanje vozila i pošaljite slike, pa vidite ponudu.'],
+    ['Koje podatke trebam poslati za otkup vozila?', 'Dovoljno je ime, broj telefona, mjesto gdje se vozilo nalazi, marka, model i godište, kratak opis stanja, tražena cijena i nekoliko slika vozila.'],
+    ['Gdje se nalazi Auto Otpad Delić?', `${cfg.address ? cfg.address + ', ' : ''}${cfg.city}, Bosna i Hercegovina.`],
+  ];
   const body = `
-<nav class="crumbs"><a href="/">Početna</a> › <span>Otkup vozila</span></nav>
-<section class="panel buy-page"><div class="panel-h"><h1>Otkup havarisanih vozila</h1></div>
-  <p class="lead">Otkupljujemo havarisana, neispravna i otpisana vozila. Pošalji nekoliko slika i podatke o vozilu.</p>
+<nav class="crumbs"><a href="/">Početna</a> › <span>Otkup havarisanih vozila Bijeljina</span></nav>
+<section class="panel buy-page"><div class="panel-h"><h1>Otkup havarisanih vozila Bijeljina</h1></div>
+  <p class="lead">Auto Otpad Delić je ${esc(kw)} i okolina: otkupljujemo havarisana, neispravna i otpisana vozila. Pošalji nekoliko slika i podatke o vozilu.</p>
   <form id="otkup-form" class="box otkup" novalidate>
     <input class="hp" type="text" name="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
     <div class="sf-grid">
@@ -499,9 +505,44 @@ function buyout() {
     <button type="submit" class="btn">Pošalji ponudu</button>
     <p class="form-msg" role="status"></p>
   </form>
+</section>
+<section class="panel seo-text">
+  <h2>Otkup havarisanih vozila u Bijeljini</h2>
+  <p>Ako imate vozilo nakon saobraćajne nezgode, neispravno ili otpisano vozilo koje više ne želite držati, Auto Otpad Delić u Bijeljini nudi otkup havarisanih vozila. Ponudu možete poslati za nekoliko minuta, bez odlaska i bez obaveza.</p>
+  <h2>Šta otkupljujemo</h2>
+  <ul>
+    <li>havarisana vozila nakon udesa</li>
+    <li>neispravna vozila i vozila koja se ne pokreću</li>
+    <li>otpisana vozila i vozila za rezervne dijelove</li>
+    <li>putnička vozila svih marki i modela</li>
+  </ul>
+  <h2>Kako funkcioniše otkup havarisanih vozila</h2>
+  <ol>
+    <li>Popunite formu iznad: ime, telefon, lokaciju vozila, marku, model, godište i željenu cijenu.</li>
+    <li>Priložite slike vozila i opišite stanje.</li>
+    <li>Pošaljite ponudu, a mi je pregledamo.</li>
+  </ol>
+  <h2>Otkup havarisanih vozila Bijeljina, Janja, Ugljevik, Lopare i Brčko</h2>
+  <p>Otkup havarisanih vozila vršimo iz Bijeljine, a vozila možete ponuditi iz cijele Semberije i šire: Janja, Ugljevik, Lopare, Zvornik, Brčko i okolna mjesta. Upišite gdje se vozilo nalazi, a mi vidimo ostalo.</p>
+  <h2>Polovni dijelovi iz otkupljenih vozila</h2>
+  <p>Vozila koja otkupimo rastavljamo za polovne auto dijelove. Pogledajte <a href="/dijelovi">katalog polovnih dijelova</a>, <a href="/felne">felne</a> ili <a href="/katalog">katalog po vozilu</a>.</p>
+  <h2>Često postavljana pitanja</h2>
+  ${faq.map(([q, a]) => `<details class="faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}
+  <p class="muted small">${esc(cfg.name)}, ${cfg.address ? esc(cfg.address) + ', ' : ''}${esc(cfg.city)} · <a href="tel:${esc(cfg.phoneTel)}">${esc(cfg.phone)}</a> · Radno vrijeme: ${cfg.hours.map(esc).join(', ')}</p>
 </section>`;
-  return layout({ title: 'Otkup havarisanih vozila', path: '/otkup', body,
-    desc: `Otkup havarisanih i neispravnih vozila — ${cfg.name}, ${cfg.city}. Pošalji slike, lokaciju i cijenu vozila.` });
+  const jsonld = [
+    { '@context': 'https://schema.org', '@type': 'Service', name: 'Otkup havarisanih vozila Bijeljina', serviceType: 'Otkup havarisanih vozila',
+      areaServed: [{ '@type': 'City', name: cfg.city }, { '@type': 'Country', name: 'Bosna i Hercegovina' }],
+      provider: { '@type': 'AutoPartsStore', name: cfg.name, url: cfg.siteUrl, telephone: cfg.phoneTel,
+        address: { '@type': 'PostalAddress', ...(cfg.address ? { streetAddress: cfg.address } : {}), addressLocality: cfg.city, addressCountry: 'BA' } },
+      url: cfg.siteUrl + '/otkup', description: 'Otkup havarisanih, neispravnih i otpisanih vozila u Bijeljini i okolini.' },
+    { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
+    { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Početna', item: cfg.siteUrl + '/' },
+      { '@type': 'ListItem', position: 2, name: 'Otkup havarisanih vozila Bijeljina', item: cfg.siteUrl + '/otkup' }] },
+  ];
+  return layout({ title: 'Otkup havarisanih vozila Bijeljina', path: '/otkup', body, jsonld, ogImage: '/static/logo-full.png',
+    desc: 'Otkup havarisanih vozila Bijeljina: otkup havarisanih, neispravnih i otpisanih vozila u Bijeljini i okolini. Pošaljite slike i cijenu. Auto Otpad Delić.' });
 }
 
 function unavailable(id) {
