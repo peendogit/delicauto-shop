@@ -794,7 +794,7 @@ if (cfg.adminPass && cfg.adminPass.length < 10) console.warn('[sigurnost] ADMIN_
       fails = 0; down = false;
     }
   };
-  setInterval(check, 5 * 60e3).unref();
+  if (process.env.WATCHDOG === '1') setInterval(check, 5 * 60e3).unref(); // isključen dok se u .env ne stavi WATCHDOG=1
 })();
 
 app.listen(cfg.port, () => {
