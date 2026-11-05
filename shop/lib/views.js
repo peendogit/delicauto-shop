@@ -15,6 +15,16 @@ const nice = s => {
 const partTitle = p => [nice(p.type), p.make, p.model].filter(Boolean).join(' ') || ('Dio ' + p.id);
 const partUrl = p => `/dio/${slugify([p.catalog, partTitle(p)].filter(Boolean).join(' ')) || 'dio'}-${p.id}`;
 const imgUrl = (file, w) => `/img/${w}/${String(file).split('/').map(encodeURIComponent).join('/')}`;
+// SEO slika: ime fajla = kataloški broj + naziv dijela (+ redni broj), npr. /foto/960/<fajl>/5g1941005-zadnji-branik-vw-golf-7-polovni-dio-2.jpg
+const imgSeo = (p, title) => {
+  let b = slugify([p.catalog || p.internal, title].filter(Boolean).join(' '));
+  if (b.length >= 80) b = b.replace(/-[^-]*$/, ''); // ne sijeci usred riječi
+  return (b || 'dio') + '-polovni-dio';
+};
+const imgAlt = (p, title, i = 0) => `${title}${p.catalog ? ' – kat. br. ' + p.catalog : ''}${i ? ' – slika ' + (i + 1) : ''}`;
+const imgSrc = (file, w, seo, i = 0) => seo
+  ? `/foto/${w}/${encodeURIComponent(String(file).replace(/\//g, '~'))}/${seo}-${i + 1}.jpg`
+  : imgUrl(file, w);
 const money = v => (v === null || v === undefined) ? '' :
   (Number.isInteger(v) ? String(v) : v.toFixed(2).replace('.', ',')) + ' KM';
 const parseImgs = p => { try { return JSON.parse(p.images || '[]'); } catch { return []; } };
@@ -74,7 +84,7 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld).replace(
   <div class="muted small">Polovni dijelovi s vozila iz našeg otpada.</div>
 </div>
 ${socials()}</footer>
-<script src="/static/app.js?v=30" defer></script>
+<script src="/static/app.js?v=31" defer></script>
 </body></html>`;
 }
 
@@ -91,11 +101,11 @@ function socials() {
 
 function card(p) {
   const imgs = parseImgs(p);
-  const title = partTitle(p);
+  const title = partTitle(p), seo = imgSeo(p, title);
   const sub = [p.vehicle, p.catalog && 'Kat. br. ' + p.catalog].filter(Boolean).join(' · ');
   return `<article class="card"><a href="${partUrl(p)}">
   <div class="card-img">${imgs[0]
-    ? `<img src="${imgUrl(imgs[0], 480)}" srcset="${imgUrl(imgs[0], 240)} 240w, ${imgUrl(imgs[0], 480)} 480w" sizes="(max-width:600px) 46vw, 260px" loading="lazy" alt="${esc(title)}" width="480" height="360">`
+    ? `<img src="${imgSrc(imgs[0], 480, seo)}" srcset="${imgSrc(imgs[0], 240, seo)} 240w, ${imgSrc(imgs[0], 480, seo)} 480w" sizes="(max-width:600px) 46vw, 260px" loading="lazy" alt="${esc(imgAlt(p, title))}" width="480" height="360">`
     : '<div class="noimg">Nema slike</div>'}</div>
   <div class="card-b"><h3>${esc(title)}</h3>${sub ? `<p class="sub">${esc(sub)}</p>` : ''}
   <div class="card-f">${p.price ? `<span class="price">${esc(money(p.price))}</span>` : '<span class="ask">Pošalji upit</span>'}
@@ -176,13 +186,13 @@ function searchForm(f, fx) {
 
 // ---- tabela rezultata (kao katalog) ----
 function partRow(p, i, start = 0) {
-  const imgs = parseImgs(p), url = partUrl(p);
+  const imgs = parseImgs(p), url = partUrl(p), ttl = partTitle(p), seo = imgSeo(p, ttl);
   const veh = [p.make, p.model].filter(Boolean).join(' ');
   const veh2 = [p.vehicle, p.fuel, p.engineCode && 'motor ' + p.engineCode].filter(Boolean).join(' · ');
   const num = v => (v && /^\d+([.,]\d+)?$/.test(String(v)) ? esc(v) : esc(v || '—'));
   return `<tr>
   <td class="c-no">${start + i + 1}</td>
-  <td class="c-img"><a href="${url}" tabindex="-1">${imgs[0] ? `<img src="${imgUrl(imgs[0], 240)}" loading="lazy" alt="" width="240" height="180">` : '<span class="noimg">—</span>'}</a></td>
+  <td class="c-img"><a href="${url}" tabindex="-1">${imgs[0] ? `<img src="${imgSrc(imgs[0], 240, seo)}" loading="lazy" alt="${esc(imgAlt(p, ttl))}" width="240" height="180">` : '<span class="noimg">—</span>'}</a></td>
   <td data-l="Šifra" class="mono">${esc(p.internal || '—')}</td>
   <td data-l="Dio" class="c-name"><a href="${url}">${esc(nice(p.type) || 'Dio')}</a>${p.group ? `<small>${esc(p.group)}</small>` : ''}</td>
   <td data-l="Vozilo" class="c-veh"><b>${esc(veh || '—')}</b>${veh2 ? `<small>${esc(veh2)}</small>` : ''}</td>
@@ -211,7 +221,7 @@ function home({ makes, latest, total, facets, f, arrived = [] }) {
   ${latest.length ? partsTable(latest) : '<p class="muted">Katalog se učitava, pokušaj ponovo za koji trenutak.</p>'}
 </section>
 ${arrived.length ? `<section class="arrived"><div class="sec-h"><h2>Stiglo na plac</h2></div>
-  <div class="chips">${arrived.map(y => `<a class="chip" href="/dijelovi?marka=${encodeURIComponent(y.make)}&amp;model=${encodeURIComponent(y.model)}">${(() => { const im = parseImgs(y)[0]; return im ? `<img src="${imgUrl(im, 480)}" alt="${esc(y.make + ' ' + y.model)}" loading="lazy" width="480" height="360">` : ''; })()}<b>${esc(y.make)} ${esc(y.model)}</b><span>${[y.year, y.fuel, y.engine_code].filter(Boolean).map(esc).join(' · ')}</span></a>`).join('')}</div></section>` : ''}
+  <div class="chips">${arrived.map(y => `<a class="chip" href="/dijelovi?marka=${encodeURIComponent(y.make)}&amp;model=${encodeURIComponent(y.model)}">${(() => { const im = parseImgs(y)[0]; return im ? `<img src="${imgSrc(im, 480, slugify('vozilo na placu ' + y.make + ' ' + y.model + (y.year ? ' ' + y.year : '')))}" alt="${esc('Polovno vozilo na placu: ' + y.make + ' ' + y.model + (y.year ? ' ' + y.year : ''))}" loading="lazy" width="480" height="360">` : ''; })()}<b>${esc(y.make)} ${esc(y.model)}</b><span>${[y.year, y.fuel, y.engine_code].filter(Boolean).map(esc).join(' · ')}</span></a>`).join('')}</div></section>` : ''}
 <section class="cta buy-cta"><h2>Otkup havarisanih vozila Bijeljina</h2>
   <p>Prodaješ vozilo u kvaru ili nakon udesa? Isplata odmah, po vozilo dolazimo mi. Pošalji slike, lokaciju i cijenu.</p>
   <a class="btn" href="/otkup" title="Otkup havarisanih vozila Bijeljina">Pošalji vozilo za otkup</a></section>
@@ -354,7 +364,7 @@ const UNITS = { displacement: ' ccm', power: ' kW' };
 
 function detail(p, related = []) {
   const imgs = parseImgs(p);
-  const title = partTitle(p);
+  const title = partTitle(p), seo = imgSeo(p, title);
   const specs = SPEC_GROUPS.map(([title, fields]) => {
     const rows = fields.filter(([k]) => p[k] !== null && p[k] !== undefined && String(p[k]).trim() !== '')
       .map(([k, l]) => `<tr><th>${l}</th><td${['internal', 'catalog', 'engineCode', 'gearboxCode'].includes(k) ? ' class="mono"' : ''}>${esc(k === 'type' ? nice(p[k]) : p[k])}${UNITS[k] && /^\d+([.,]\d+)?$/.test(String(p[k])) ? UNITS[k] : ''}</td></tr>`).join('');
@@ -367,9 +377,9 @@ function detail(p, related = []) {
 <div class="detail">
   <section class="gal">
     <div class="gal-main">${imgs[0]
-      ? `<img id="mainimg" src="${imgUrl(imgs[0], 960)}" alt="${esc(title)}" width="960" height="720">` : '<div class="noimg big">Nema slike</div>'}</div>
+      ? `<img id="mainimg" src="${imgSrc(imgs[0], 960, seo)}" alt="${esc(imgAlt(p, title))}" title="${esc(title)}" width="960" height="720">` : '<div class="noimg big">Nema slike</div>'}</div>
     ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((f, i) =>
-      `<button type="button" data-thumb="${imgUrl(f, 960)}" aria-label="Slika ${i + 1}"><img src="${imgUrl(f, 240)}" alt="" loading="lazy" width="240" height="180"></button>`).join('')}</div>` : ''}
+      `<button type="button" data-thumb="${imgSrc(f, 960, seo, i)}" data-alt="${esc(imgAlt(p, title, i))}" aria-label="Slika ${i + 1}"><img src="${imgSrc(f, 240, seo, i)}" alt="${esc(imgAlt(p, title, i))}" loading="lazy" width="240" height="180"></button>`).join('')}</div>` : ''}
   </section>
   <section class="info">
     <h1>${esc(title)}</h1>
@@ -390,7 +400,7 @@ ${related.length ? `<section><div class="sec-h"><h2>Slični dijelovi</h2></div>$
 ${mapSection('Gdje preuzeti ovaj dio', true)}`;
   const jsonld = {
     '@context': 'https://schema.org', '@type': 'Product', name: title,
-    ...(imgs.length ? { image: imgs.slice(0, 5).map(f => cfg.siteUrl + imgUrl(f, 960)) } : {}),
+    ...(imgs.length ? { image: imgs.slice(0, 5).map((f, i) => cfg.siteUrl + imgSrc(f, 960, seo, i)) } : {}),
     ...(p.internal ? { sku: p.internal } : {}), ...(p.catalog ? { mpn: p.catalog } : {}),
     ...(p.make ? { brand: { '@type': 'Brand', name: p.make } } : {}),
     itemCondition: 'https://schema.org/UsedCondition',
@@ -404,7 +414,7 @@ ${mapSection('Gdje preuzeti ovaj dio', true)}`;
       { '@type': 'ListItem', position: 1, name: 'Početna', item: cfg.siteUrl + '/' },
       ...(p.make ? [{ '@type': 'ListItem', position: 2, name: p.make, item: `${cfg.siteUrl}/katalog?marka=${encodeURIComponent(p.make)}` }] : []),
       { '@type': 'ListItem', position: p.make ? 3 : 2, name: title, item: cfg.siteUrl + partUrl(p) }] }],
-    ogImage: imgs[0] ? imgUrl(imgs[0], 960) : null,
+    ogImage: imgs[0] ? imgSrc(imgs[0], 960, seo) : null,
     desc: `${p.catalog ? 'Kataloški broj ' + p.catalog + ': ' : ''}${title}${p.vehicle ? ' (' + p.vehicle + ')' : ''}${p.price ? ' — ' + money(p.price) : ' — cijena na upit'}. Polovni dio, garancija 7 dana, ${cfg.name} ${cfg.city}.`,
   });
 }
@@ -415,10 +425,10 @@ const rimUrl = r => `/felna/${slugify([rimTitle(r), r.internal].filter(Boolean).
 const rimSub = r => [r.width && `${r.width}J`, r.et && `ET ${r.et}`, r.center && `CB ${r.center}`].filter(Boolean).join(' · ');
 
 function rimCard(r) {
-  const imgs = parseImgs(r), title = rimTitle(r);
+  const imgs = parseImgs(r), title = rimTitle(r), seo = imgSeo({ catalog: r.internal }, title);
   return `<article class="card"><a href="${rimUrl(r)}">
   <div class="card-img">${imgs[0]
-    ? `<img src="${imgUrl(imgs[0], 480)}" srcset="${imgUrl(imgs[0], 240)} 240w, ${imgUrl(imgs[0], 480)} 480w" sizes="(max-width:600px) 46vw, 260px" loading="lazy" alt="${esc(title)}" width="480" height="360">`
+    ? `<img src="${imgSrc(imgs[0], 480, seo)}" srcset="${imgSrc(imgs[0], 240, seo)} 240w, ${imgSrc(imgs[0], 480, seo)} 480w" sizes="(max-width:600px) 46vw, 260px" loading="lazy" alt="${esc(imgAlt({ catalog: r.internal }, title))}" width="480" height="360">`
     : '<div class="noimg">Nema slike</div>'}</div>
   <div class="card-b"><h3>${esc(title)}</h3>${rimSub(r) ? `<p class="sub">${esc(rimSub(r))}</p>` : ''}
   <div class="card-f">${r.price ? `<span class="price">${esc(money(r.price))}</span>` : '<span class="ask">Cijena na upit</span>'}
@@ -450,7 +460,7 @@ ${rows.length ? `<div class="grid g3">${rows.map(rimCard).join('')}</div>` : `<d
 }
 
 function rimDetail(r) {
-  const imgs = parseImgs(r), title = rimTitle(r);
+  const imgs = parseImgs(r), title = rimTitle(r), seo = imgSeo({ catalog: r.internal }, title), ra = { catalog: r.internal };
   const rows = [['Šifra', r.internal], ['Vrsta', nice(r.type)], ['Promjer', r.diameter && r.diameter + '"'], ['Širina', r.width && r.width + ' J'],
     ['Raspored šarafa', r.bolts], ['ET', r.et], ['Centralna rupa', r.center && r.center + ' mm'], ['Marka vozila', r.make], ['Model', r.model],
     ['Šarafi uključeni', r.screws ? 'Da' : null], ['Hromirane / niklovane', r.chrome ? 'Da' : null], ['Oštećene', r.damaged ? 'Da' : null]]
@@ -460,8 +470,8 @@ function rimDetail(r) {
 <nav class="crumbs"><a href="/">Početna</a> › <a href="/felne">Felne</a> › <span>${esc(title)}</span></nav>
 <div class="detail">
   <section class="gal">
-    <div class="gal-main">${imgs[0] ? `<img id="mainimg" src="${imgUrl(imgs[0], 960)}" alt="${esc(title)}" width="960" height="720">` : '<div class="noimg big">Nema slike</div>'}</div>
-    ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((f, i) => `<button type="button" data-thumb="${imgUrl(f, 960)}" aria-label="Slika ${i + 1}"><img src="${imgUrl(f, 240)}" alt="" loading="lazy" width="240" height="180"></button>`).join('')}</div>` : ''}
+    <div class="gal-main">${imgs[0] ? `<img id="mainimg" src="${imgSrc(imgs[0], 960, seo)}" alt="${esc(imgAlt(ra, title))}" width="960" height="720">` : '<div class="noimg big">Nema slike</div>'}</div>
+    ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((f, i) => `<button type="button" data-thumb="${imgSrc(f, 960, seo, i)}" data-alt="${esc(imgAlt(ra, title, i))}" aria-label="Slika ${i + 1}"><img src="${imgSrc(f, 240, seo, i)}" alt="${esc(imgAlt(ra, title, i))}" loading="lazy" width="240" height="180"></button>`).join('')}</div>` : ''}
   </section>
   <section class="info">
     <h1>${esc(title)}</h1>
@@ -475,10 +485,10 @@ function rimDetail(r) {
 </div>
 <section class="sheet"><h2>Specifikacija felni</h2><div class="sheet-grid"><table class="specs"><tbody>${rows}</tbody></table></div></section>
 ${mapSection('Gdje preuzeti ove felne', true)}`;
-  const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: title, ...(imgs.length ? { image: imgs.slice(0, 5).map(f => cfg.siteUrl + imgUrl(f, 960)) } : {}),
+  const jsonld = { '@context': 'https://schema.org', '@type': 'Product', name: title, ...(imgs.length ? { image: imgs.slice(0, 5).map((f, i) => cfg.siteUrl + imgSrc(f, 960, seo, i)) } : {}),
     ...(r.internal ? { sku: r.internal } : {}), ...(r.make ? { brand: { '@type': 'Brand', name: r.make } } : {}), itemCondition: 'https://schema.org/UsedCondition',
     ...(r.price ? { offers: { '@type': 'Offer', priceCurrency: 'BAM', price: String(r.price), availability: 'https://schema.org/InStock', url: cfg.siteUrl + rimUrl(r) } } : {}) };
-  return layout({ title, path: rimUrl(r), body, jsonld, ogImage: imgs[0] ? imgUrl(imgs[0], 960) : null,
+  return layout({ title, path: rimUrl(r), body, jsonld, ogImage: imgs[0] ? imgSrc(imgs[0], 960, seo) : null,
     desc: `${title}${rimSub(r) ? ' (' + rimSub(r) + ')' : ''}${r.price ? ' — ' + money(r.price) : ' — cijena na upit'}. Polovne felne, ${cfg.name} ${cfg.city}.` });
 }
 
@@ -598,4 +608,4 @@ function notFound() {
   return layout({ title: 'Stranica nije pronađena', noindex: true, body: `<div class="empty"><h1>Stranica nije pronađena</h1><p><a class="btn" href="/">Na početnu</a></p></div>` });
 }
 
-module.exports = { rimsList, rimDetail, rimUrl, rimTitle, yardNotice, warranty, contactBtnsMsg, contactBtns, buyout, listFrag, esc, slugify, nice, partTitle, partUrl, imgUrl, money, rowToPart, parseImgs, layout, home, list, catalog, detail, unavailable, contact, notFound };
+module.exports = { imgSeo, imgSrc, imgAlt, rimsList, rimDetail, rimUrl, rimTitle, yardNotice, warranty, contactBtnsMsg, contactBtns, buyout, listFrag, esc, slugify, nice, partTitle, partUrl, imgUrl, money, rowToPart, parseImgs, layout, home, list, catalog, detail, unavailable, contact, notFound };

@@ -127,6 +127,9 @@ const basic = 'Basic ' + Buffer.from('nino:tajna123').toString('base64');
 
     console.log('Slike');
     r = await fetch(S('/img/480/7CM2/a.jpg')); ok(r.status === 200 && r.headers.get('content-type') === 'image/jpeg', `slika se servira (sharp: ${sharpOk ? 'da' : 'ne'})`);
+    r = await fetch(S('/foto/480/7CM2~a.jpg/cplа-14q073aa-kutija-osiguraca-polovni-dio-1.jpg'.replace('а', 'a'))); ok(r.status === 200 && r.headers.get('content-type') === 'image/jpeg', 'SEO slika (/foto) s opisnim imenom se servira');
+    r = await fetch(S('/foto/480/..~..~etc~passwd/x.jpg')); ok(r.status === 404, 'path traversal kroz /foto blokiran');
+    r = await get('/dio/' + (await get('/dijelovi?q=CPLA-14Q073-AA')).text.match(/\/dio\/[^"]+/)[0].slice(5)); ok(/<img id="mainimg" src="\/foto\/960\/[^"]+\/[a-z0-9-]+-polovni-dio-1\.jpg" alt="[^"]*kat\. br\./.test(r.text), 'artikal: ime slike i alt sadrže kataloški broj i naziv');
     const bytes = Buffer.from(await (await fetch(S('/img/480/7CM2/a.jpg'))).arrayBuffer());
     ok(bytes.length > 100 && bytes[0] === 0xff && bytes[1] === 0xd8, 'slika ima pravi JPEG sadržaj (' + bytes.length + ' B)');
     const css = await get('/static/style.css'); ok(css.status === 200 && css.text.includes('--ac:'), 'style.css se isporučuje s tijelom');

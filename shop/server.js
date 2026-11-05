@@ -380,9 +380,9 @@ app.get('/feed/google.xml', (req, res) => {
   const x = V.esc;
   const rows = db.prepare('SELECT * FROM parts WHERE price > 0 AND qty > 0 ORDER BY id DESC LIMIT 50000').all().map(V.rowToPart);
   const items = rows.map(p => {
-    const img = V.parseImgs(p)[0], t = V.partTitle(p);
+    const img = V.parseImgs(p)[0], t = V.partTitle(p), seo = V.imgSeo(p, t);
     return `<item><g:id>${p.id}</g:id><title>${x(t.slice(0, 150))}</title><description>${x(`${t}${p.vehicle ? ' (' + p.vehicle + ')' : ''}. Polovni dio, garancija 7 dana.`)}</description>` +
-      `<link>${x(cfg.siteUrl + V.partUrl(p))}</link>${img ? `<g:image_link>${x(cfg.siteUrl + V.imgUrl(img, 960))}</g:image_link>` : ''}` +
+      `<link>${x(cfg.siteUrl + V.partUrl(p))}</link>${img ? `<g:image_link>${x(cfg.siteUrl + V.imgSrc(img, 960, seo))}</g:image_link>` : ''}` +
       `<g:price>${Number(p.price).toFixed(2)} BAM</g:price><g:availability>in_stock</g:availability><g:condition>used</g:condition>` +
       `${p.make ? `<g:brand>${x(p.make)}</g:brand>` : ''}${p.catalog ? `<g:mpn>${x(p.catalog)}</g:mpn>` : '<g:identifier_exists>no</g:identifier_exists>'}</item>`;
   }).join('');
@@ -410,7 +410,15 @@ async function loadSource(rel) {
   return Buffer.from(await r.arrayBuffer());
 }
 
-app.get('/img/:w/*', async (req, res) => {
+// /foto/<širina>/<fajl sa ~ umjesto />/<kataloski-broj-naziv-dijela-N>.jpg — isto kao /img, ali s opisnim imenom slike za Google
+app.get('/foto/:w/*', (req, res, next) => {
+  const parts = String(req.params.rest || '').split('/');
+  if (parts.length !== 2 || !/^[a-z0-9-]{1,120}\.jpg$/.test(parts[1])) return res.json({ error: 'nije pronađeno' }, 404);
+  req.params.rest = parts[0].replace(/~/g, '/');
+  return serveImg(req, res);
+});
+app.get('/img/:w/*', (req, res) => serveImg(req, res));
+async function serveImg(req, res) {
   const w = Number(req.params.w);
   const rel = String(req.params.rest || '');
   const ext = path.extname(rel).toLowerCase();
@@ -443,7 +451,7 @@ app.get('/img/:w/*', async (req, res) => {
   } catch {
     res.json({ error: 'slika nije dostupna' }, 404);
   }
-});
+}
 
 // ---------- API za frontend ----------
 app.get('/api/dijelovi', (req, res) => {
@@ -454,7 +462,7 @@ app.get('/api/dijelovi', (req, res) => {
   res.json(rows.map(p => {
     const imgs = V.parseImgs(p);
     return { id: p.id, title: V.partTitle(p), internal: p.internal, price: p.price || null, qty: p.qty || 1,
-      img: imgs[0] ? V.imgUrl(imgs[0], 240) : null, url: V.partUrl(p) };
+      img: imgs[0] ? V.imgSrc(imgs[0], 240, V.imgSeo(p, V.partTitle(p))) : null, url: V.partUrl(p) };
   }));
 });
 
@@ -541,7 +549,11 @@ app.get('/sitemap-pages.xml', (req, res) => {
 app.get('/sitemap-dijelovi-:n.xml', (req, res) => {
   const n = Math.max(1, parseInt(req.params.n, 10) || 1);
   const rows = db.prepare('SELECT * FROM parts ORDER BY id LIMIT ? OFFSET ?').all(CHUNK, (n - 1) * CHUNK).map(V.rowToPart);
-  res.send(xml(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${rows.map(p => `<url><loc>${V.esc(cfg.siteUrl + V.partUrl(p))}</loc></url>`).join('')}</urlset>`), 'application/xml; charset=utf-8');
+  res.send(xml(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">${rows.map(p => {
+    const t = V.partTitle(p), seo = V.imgSeo(p, t);
+    const im = V.parseImgs(p).slice(0, 3).map((f, i) => `<image:image><image:loc>${V.esc(cfg.siteUrl + V.imgSrc(f, 960, seo, i))}</image:loc><image:title>${V.esc(V.imgAlt(p, t, i))}</image:title></image:image>`).join('');
+    return `<url><loc>${V.esc(cfg.siteUrl + V.partUrl(p))}</loc>${im}</url>`;
+  }).join('')}</urlset>`), 'application/xml; charset=utf-8');
 });
 
 app.get('/health', (req, res) => res.json({ ok: true, parts: db.prepare('SELECT COUNT(*) AS n FROM parts').get().n }));

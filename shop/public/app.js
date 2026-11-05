@@ -43,7 +43,7 @@
     }
     var th = e.target.closest('[data-thumb]');
     if (th) {
-      var main = document.getElementById('mainimg'); if (main) main.src = th.getAttribute('data-thumb');
+      var main = document.getElementById('mainimg'); if (main) main.src = th.getAttribute('data-thumb'); if (th.getAttribute('data-alt')) main.alt = th.getAttribute('data-alt');
       document.querySelectorAll('[data-thumb]').forEach(function (b) { b.classList.toggle('on', b === th); });
     }
   });
