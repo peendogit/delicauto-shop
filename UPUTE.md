@@ -7,7 +7,15 @@ Dvije cjeline u ZIP-u:
 
 Kako radi: webshop ima katalog kao TecDoc — na početnoj biraš marku → model → vozilo/motor (ili upišeš kataloški broj), pa grupu i tip dijela (`/katalog`, lijevo stablo grupa u rezultatima). Podaci za to dolaze iz polja marka, model, vozilo, grupa i tip dijela. Pretraga ima sva polja kao u tvojoj aplikaciji: brza pretraga, kataloški broj, tip dijela, interna šifra, grupa, marka, model, vozilo, kubikaža, snaga, kod mjenjača, kod motora, mjenjač, broj brzina, tip karoserije, pogon, gorivo, strana i „samo sa cijenom“. Webshop svakih 20 s pita aplikaciju šta je novo. Dodaš dio → pojavi se. Prodaš dio (`Prodaj dio`) ili količina padne na 0 → nestane. Kad kupac naruči, dio se **rezerviše u aplikaciji** (niko drugi ga ne može naručiti), a ti dobiješ Telegram poruku i narudžbu u `/admin`. Cijena u aplikaciji postoji → shop je prikazuje i dio se može naručiti; nema cijene → „Pošalji upit“.
 
-## 1. Aplikacija (izvor dijelova)
+## 0. Veza sa programom delicdijelovi (preporučeno)
+
+Program **delicdijelovi** (peendogit/Delicdijelovi) već ima API koji ovaj shop koristi (`/shop-api`) — ništa ne treba dodavati:
+1. U `.env` programa delicdijelovi: `SHOP_API_KEY=dugi-nasumicni-kljuc` pa `pm2 restart delic-dijelovi`
+2. U `shop/.env`: `APP_URL=http://127.0.0.1:3020`, `APP_API_KEY=` isti ključ, `UPLOADS_DIR=/var/www/delicdijelovi/data/uploads`, pa `pm2 restart delicauto-shop`
+3. Shop sam povuče sve dijelove (par minuta), a dalje svakih 20 s: novi dio se pojavi, prodat nestane, promjena cijene stigne, narudžba sa sajta rezerviše dio u programu.
+ID-evi dijelova su isti kao kod uvoza iz backupa, pa postojeće narudžbe ostaju ispravne.
+
+## 1. Aplikacija (izvor dijelova) — stari način
 
 > Napomena: stvarna aplikacija s dijelovima je dijelovi.delicauto.com (ne AutoDelicGume). Fajl `shop-api.cjs` je referentna implementacija API-ja: programer te aplikacije može prepisati istu logiku u svoj jezik, ili je koristiti ako aplikacija radi na Node.js + SQLite.
 
