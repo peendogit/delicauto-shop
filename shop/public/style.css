@@ -141,7 +141,7 @@ table.parts{width:100%;border-collapse:collapse;font-size:.88rem}
   .parts thead{display:none}.parts,.parts tbody{display:block}
   .parts tbody tr,.parts tbody tr:nth-child(even){display:grid;grid-template-columns:78px 1fr;column-gap:12px;row-gap:1px;padding:11px 12px;border-top:1px solid var(--line);background:#fff}
   .parts td{display:block;padding:0;border:0}
-  .parts td.c-img{grid-row:1/span 7;padding:0}
+  .parts td.c-img{grid-row:1/span 14;padding:0}
   .parts td[data-l]::before{content:attr(data-l);color:var(--faint);font-size:.64rem;text-transform:uppercase;letter-spacing:.07em;margin-right:6px}
   .parts td.c-name::before,.parts td.c-veh::before{display:none}
   .parts td.c-name{font-size:1rem;margin-bottom:1px}
@@ -399,3 +399,16 @@ details.faq{border-top:1px solid var(--line);padding:8px 0}details.faq summary{c
 .arrived .chip span{font-size:.78rem;opacity:.7}
 .top-search button.ico-s{display:inline-flex;align-items:center;justify-content:center;padding-left:14px;padding-right:14px}
 .arrived .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.arrived .chip{padding:0;overflow:hidden;min-width:0}.arrived .chip img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#eee}.arrived .chip b,.arrived .chip span{padding:0 10px}.arrived .chip b{padding-top:8px}.arrived .chip span{padding-bottom:8px}
+
+/* otkup: ujednačen razmak, bez kutije u kutiji */
+.buy-page{padding-bottom:6px}
+.buy-page .lead{margin:6px 16px 14px}
+.buy-page .box.otkup{border:0;border-top:1px solid var(--line);border-radius:0;margin:0;padding:16px}
+.seo-text{padding:6px 16px 16px}
+.seo-text>h2:first-child{margin-top:.6rem}
+
+/* kartice marki/modela: nikad ne prelaze širinu ekrana */
+.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:700px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(min-width:980px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:560px){.tile{flex-direction:column;align-items:flex-start;gap:2px}}
+.tile b{overflow-wrap:anywhere}
